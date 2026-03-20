@@ -1,0 +1,51 @@
+{
+  "name": "raze",
+  "version": "0.1.0",
+  "description": "MCP-first smart contract attack engine for AI developer tools.",
+  "type": "module",
+  "bin": {
+    "raze": "./dist/src/interfaces/cli/index.js"
+  },
+  "main": "./dist/src/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "default": "./dist/src/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "templates",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "dev": "node --loader ts-node/esm src/interfaces/cli/index.ts",
+    "test": "npm run build && node --test dist/test/**/*.test.js"
+  },
+  "keywords": [
+    "mcp",
+    "smart-contracts",
+    "security",
+    "foundry",
+    "fuzzing"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.17.1",
+    "commander": "^14.0.0",
+    "dotenv": "^17.2.2",
+    "zod": "^4.1.5"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2"
+  }
+}

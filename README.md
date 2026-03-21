@@ -1,21 +1,26 @@
 # raze
 
-Raze is an MCP-first smart contract attack engine built for AI-native developer environments such as Cursor, Claude Desktop, and Codex.
+Raze is an open-source, AI-orchestrated smart contract security tool for Foundry projects.
 
-Raze does not ship its own LLM. It exposes deterministic tools through MCP so the user's existing AI can reason about attacks while Raze:
+It is built for developers who want to explore, validate, and prove smart contract security issues with their existing AI, without giving up deterministic execution.
 
-- inspects project structure
-- validates referenced symbols
-- materializes deterministic proof scaffolds
-- runs Foundry
-- writes structured reports
+Raze does not ship its own LLM. Instead, it works with your existing AI through MCP and gives that AI a deterministic execution layer for:
 
-The user's AI can then:
+- project inspection
+- attack validation
+- deterministic proof scaffolding
+- Foundry execution
+- developer fuzz generation
+- structured reporting
+
+The external AI can then:
 
 - analyze a contract
 - propose attack hypotheses
 - choose proof goals
 - call Raze tools to validate and execute those ideas
+
+Raze helps turn smart contract security reasoning into validated, executable proof, and it is being built in the open from day one.
 
 No API key is required. No Docker is used.
 

@@ -100,6 +100,53 @@ CLI usage guidance:
 - `raze dev-fuzz` is the local developer workflow for generating broad deterministic Foundry fuzz tests per function.
 - ASCII branding is intentionally deferred until after this functional v1 closeout.
 
+## CI/CD
+
+`raze fuzz` runs without an editor or MCP connection, making it suitable for CI pipelines.
+
+**GitHub Actions example:**
+
+```yaml
+name: Raze security scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  raze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Install Raze
+        run: npm install -g raze
+
+      - name: Run security scan
+        run: raze fuzz . --run --offline
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: raze-report
+          path: .raze/reports/fuzz.md
+```
+
+The report is written to `.raze/reports/fuzz.md`. Use the `upload-artifact` step to preserve it across runs.
+
+If the scan finds a confirmed vulnerability (`assessment.decision: fix-now`), you can fail the pipeline by checking the report or exit code. Raze exits with code `0` regardless of findings — blocking on security findings is a team decision, not a default.
+
 ## Golden Paths
 
 If you want to audit a contract:

@@ -1,4 +1,81 @@
-import type { AttackAssessment, ForgeRunResult } from "./types.js";
+import type { AttackAssessment, AttackFinding, Confidence, GeneratedTest, ForgeRunResult } from "./types.js";
+
+export function describeVerdictSummary(assessment: AttackAssessment, findings: AttackFinding[]): string {
+  const count = findings.length;
+  const noun = count === 1 ? "vulnerability was" : "vulnerabilities were";
+  switch (assessment.confirmationStatus) {
+    case "confirmed-by-execution":
+      return `${count} ${noun} confirmed by execution — fix immediately.`;
+    case "executed-scaffold":
+      return `${count} potential ${noun} reproduced by the proof scaffold — review before shipping.`;
+    case "validated-plan":
+      return count > 0
+        ? `${count} potential ${noun} identified — run Forge to confirm.`
+        : "A potential vulnerability was identified — run Forge to confirm.";
+    case "suspected-only":
+      return "Suspicious patterns found — author an attack plan to investigate further.";
+    default:
+      return "No vulnerabilities were found in this analysis.";
+  }
+}
+
+export function interpretForgeResult(forgeRun: ForgeRunResult | undefined): string {
+  if (!forgeRun) return "Forge was not run in this analysis.";
+  const s = forgeRun.summary;
+  if (forgeRun.ok) {
+    if (s) return `All tests passed — ${s.passed} passed, ${s.failed} failed. If the scaffold test passed, the vulnerability is still exploitable.`;
+    return "Forge completed successfully.";
+  }
+  if (s && s.failed > 0) {
+    return `Forge ran — ${s.passed} passed, ${s.failed} failed. The proof scaffold test reverted. If a fix was recently applied, this is the expected outcome — the vulnerability is no longer exploitable. Run with \`-vv\` to see the revert message.`;
+  }
+  if (s && s.failed === 0 && s.passed > 0) {
+    return `Forge returned exit code ${forgeRun.exitCode} but ${s.passed} tests passed and none failed. The scaffold may have failed to compile or had a runtime error outside test logic. Run manually with \`-vv\` to see details.`;
+  }
+  return `Forge returned exit code ${forgeRun.exitCode}. Run manually with \`-vv\` to see details.`;
+}
+
+export function deriveSeverity(confidence: Confidence, decision: AttackAssessment["decision"]): string {
+  if (confidence === "high" && decision === "fix-now") return "CRITICAL";
+  if (confidence === "high") return "HIGH";
+  if (confidence === "medium" && (decision === "fix-now" || decision === "investigate")) return "MEDIUM";
+  if (confidence === "low") return "LOW";
+  return "INFORMATIONAL";
+}
+
+export function formatSummaryBlock(
+  findings: AttackFinding[],
+  assessment: AttackAssessment,
+  generatedTests: GeneratedTest[]
+): string {
+  const severity = findings.length > 0
+    ? deriveSeverity(findings[0].confidence, assessment.decision)
+    : "INFORMATIONAL";
+
+  const confirmedFindings = findings.filter((f) =>
+    generatedTests.some((t) => t.findingType === f.type)
+  );
+
+  const confirmedLine = confirmedFindings.length > 0
+    ? confirmedFindings
+        .map((f) => `${f.contract}.${f.functions[0] ?? "?"} (${f.type}, ${deriveSeverity(f.confidence, assessment.decision).toLowerCase()})`)
+        .join(", ")
+    : "none";
+
+  const decisionLabel = assessment.decision === "fix-now"
+    ? `fix-now — ${confirmedFindings.length} issue(s) confirmed`
+    : assessment.decision;
+
+  const next = describeNextStep(assessment.confirmationStatus);
+
+  return `## Summary
+
+- Decision: ${decisionLabel}
+- Severity: ${severity}
+- Confirmed: ${confirmedLine}
+- Next: ${next}
+`;
+}
 
 export function describeNextStep(confirmationStatus: AttackAssessment["confirmationStatus"]): string {
   switch (confirmationStatus) {

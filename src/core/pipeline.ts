@@ -1,11 +1,11 @@
-import { analyzeContract } from "./planner.js";
+import { analyzeAllContracts, analyzeContract, discoverContracts } from "./planner.js";
 import { runAttackAgents } from "./attacker.js";
 import { buildAttackAssessment } from "./assessment.js";
 import { generateProofScaffolds } from "./tester.js";
 import { runForgeTests } from "./runner.js";
 import { writeReport } from "./reporter.js";
-import { deriveFallbackPlans, validateAttackPlan } from "./orchestrator.js";
-import type { AttackPipelineInput, AttackPipelineResult } from "./types.js";
+import { deriveCrossContractFindings, deriveFallbackPlans, validateAttackPlan } from "./orchestrator.js";
+import type { AttackPipelineInput, AttackPipelineResult, CrossContractFinding } from "./types.js";
 
 export async function runAttackPipeline(input: AttackPipelineInput): Promise<AttackPipelineResult> {
   const analysis = await analyzeContract(input);
@@ -18,11 +18,24 @@ export async function runAttackPipeline(input: AttackPipelineInput): Promise<Att
   const forgeRun = input.runForge ? await runForgeTests(input.projectRoot, { offline: input.offline }) : undefined;
   const hypothesisStatus = input.attackPlan ? "validated" : "none";
   const proofStatus = generatedTests.length > 0 ? (forgeRun ? "executed" : "scaffold-generated") : "no-scaffold";
+
+  // Derive cross-contract findings when the project has multiple contracts
+  let crossContractFindings: CrossContractFinding[] | undefined;
+  const allSolFiles = await discoverContracts(input.projectRoot);
+  if (allSolFiles.length > 1) {
+    const { analyses, graph } = await analyzeAllContracts(input.projectRoot);
+    crossContractFindings = deriveCrossContractFindings(analyses, graph).filter(
+      (f) => f.callerContract === analysis.contractName || f.calleeContract === analysis.contractName
+    );
+  }
+
   const assessment = buildAttackAssessment({
     findings,
     validatedPlans,
     generatedTests,
-    forgeRun
+    forgeRun,
+    crossContractFindings,
+    targetContractName: analysis.contractName
   });
   const reportPath = await writeReport({
     projectRoot: input.projectRoot,
@@ -34,7 +47,8 @@ export async function runAttackPipeline(input: AttackPipelineInput): Promise<Att
     analysisSource,
     hypothesisStatus,
     proofStatus,
-    assessment
+    assessment,
+    crossContractFindings
   });
 
   return {
@@ -48,6 +62,7 @@ export async function runAttackPipeline(input: AttackPipelineInput): Promise<Att
     hypothesisStatus,
     proofStatus,
     assessment,
-    reportPath
+    reportPath,
+    crossContractFindings
   };
 }

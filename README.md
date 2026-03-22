@@ -138,7 +138,6 @@ It exposes:
 - `raze_run_attack_suite`
 - `raze_attack`
 - `raze_analyze_contract`
-- `raze_run_fuzz_tests`
 - `raze_write_report`
 
 VS Code/Codex requires MCP tool names to contain only `[a-z0-9_-]`, so Raze uses `snake_case` tool names.
@@ -191,81 +190,52 @@ Examples:
 
 ## Prompt Examples
 
-Use these as copy-paste starting points in Cursor, Claude Desktop, or Codex.
+These are natural language prompts you copy-paste into your AI assistant (Cursor, Claude, Codex).
+The AI reads the contract, proposes the attack hypothesis, and calls the Raze tools itself — you do not write JSON.
 
-Single authored attack:
-
-```text
-Call raze_attack with this exact input and summarize the result using the structured fields:
-
-{
-  "projectRoot": "/path/to/project",
-  "contractSelector": "Counter",
-  "runForge": true,
-  "offline": true,
-  "attackPlan": {
-    "attackType": "access-control",
-    "contractName": "Counter",
-    "functionNames": ["mint"],
-    "attackHypothesis": "mint is a privileged mutation path that lacks access control",
-    "proofGoal": "show that an arbitrary caller can mutate tracked state through mint",
-    "expectedOutcome": "the observable state changes after an unauthorized mint call",
-    "callerRole": "attacker",
-    "assertionKind": "unauthorized-state-change",
-    "sampleArguments": [5]
-  }
-}
-```
-
-AI-authored multi-plan suite:
+**Audit a single contract:**
 
 ```text
-Call raze_run_attack_suite with this exact input and summarize the result per plan first, family summary second:
-
-{
-  "projectRoot": "/path/to/project",
-  "contractSelector": "Counter",
-  "runForge": true,
-  "offline": true,
-  "attackPlans": [
-    {
-      "attackType": "access-control",
-      "contractName": "Counter",
-      "functionNames": ["mint"],
-      "attackHypothesis": "mint is a privileged mutation path that lacks access control",
-      "proofGoal": "show that an arbitrary caller can mutate tracked state through mint",
-      "expectedOutcome": "the observable state changes after an unauthorized mint call",
-      "callerRole": "attacker",
-      "assertionKind": "unauthorized-state-change",
-      "sampleArguments": [5]
-    }
-  ]
-}
+Inspect the smart contracts in /path/to/project and look for security vulnerabilities in the Counter contract.
+Use raze_inspect_project to understand the project layout, then analyze the contract and propose an attack plan.
+Validate your plan with raze_validate_attack_plan, generate a proof scaffold with raze_generate_proof_scaffold,
+run the tests, and write a final report with raze_write_report.
 ```
 
-Developer fuzz generation:
+**Run a full attack suite across all vulnerability classes:**
 
 ```text
-Use raze_generate_developer_fuzz_tests with this input and summarize the selected fuzz families, generated test files, and skipped functions:
-
-{
-  "projectRoot": "/path/to/project",
-  "contractSelector": "Counter"
-}
+Analyze the Counter contract in /path/to/project for reentrancy, access control, arithmetic, flash loan,
+and price manipulation vulnerabilities. For each finding you are confident about, author an attack plan
+and run it with raze_run_attack_suite. Summarize the result per finding, then give an overall verdict.
 ```
 
-Hardening suggestions:
+**Staged flow (inspect → propose → validate → scaffold → run):**
 
 ```text
-Use raze_suggest_hardening with this input and summarize the security-focused remediations, behavior changes, and follow-up tests:
-
-{
-  "projectRoot": "/path/to/project",
-  "contractSelector": "Counter"
-}
+Use raze_inspect_project on /path/to/project to map the contract surface.
+Based on what you find, propose one or more attack hypotheses.
+For each hypothesis, call raze_validate_attack_plan to check it against real symbols.
+Then call raze_generate_proof_scaffold and run the generated Forge tests.
+Report the confirmationStatus and decision for each finding.
 ```
 
-MCP attack flows require authored plans. If `raze_attack` or `raze_run_attack_suite` is called without `attackPlan` or `attackPlans`, Raze will return a structured recovery error instead of silently falling back.
+**Harden after finding a vulnerability:**
+
+```text
+After auditing the Vault contract in /path/to/project, use raze_suggest_hardening
+to produce concrete remediation steps and a follow-up test that confirms the fix.
+```
+
+**Generate developer fuzz tests (not a security audit):**
+
+```text
+Use raze_generate_developer_fuzz_tests on the Counter contract in /path/to/project
+to generate broad Foundry fuzz tests for each public function. Summarize which
+fuzz families were selected and which functions were skipped.
+```
+
+The AI decides what attack plan to author. Raze validates it against real symbols, rejects hallucinated functions, and turns the plan into a deterministic Foundry proof. You read the final report.
 
 Interpret `confirmationStatus` directly:
 
@@ -337,8 +307,10 @@ Recommended phrasing:
 
 ## Scope
 
-Raze v1 targets Foundry projects only and focuses on three vulnerability classes:
+Raze v1 targets Foundry projects only and covers five vulnerability classes:
 
 - reentrancy
 - access control
 - arithmetic issues
+- flash loan (lender and receiver roles)
+- price manipulation

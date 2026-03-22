@@ -1,6 +1,6 @@
 import path from "node:path";
 import { promises as fs } from "node:fs";
-import type { AttackPipelineInput, AttackType, ContractAnalysis } from "./types.js";
+import type { AttackPipelineInput, AttackType, ContractAnalysis, ContractDependencyEdge, ContractDependencyGraph } from "./types.js";
 
 const CONTRACT_REGEX = /contract\s+([A-Za-z_][A-Za-z0-9_]*)/g;
 const FUNCTION_REGEX = /function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(/g;
@@ -89,6 +89,23 @@ function extractInheritedSignals(source: string): string[] {
   if (source.includes("AccessControl")) {
     signals.add("AccessControl");
   }
+  // Flash loan interface signals
+  if (source.includes("IERC3156") || source.includes("IFlashLoanReceiver") || source.includes("IFlashLoanSimpleReceiver")) {
+    signals.add("IERC3156");
+  }
+  if (source.includes("Aave") || source.includes("IPool") || source.includes("IPoolAddressesProvider")) {
+    signals.add("Aave");
+  }
+  if (source.includes("dYdX") || source.includes("ISoloMargin")) {
+    signals.add("dYdX");
+  }
+  // AMM / oracle signals
+  if (source.includes("IUniswapV2") || source.includes("IUniswapV3") || source.includes("ICurvePool")) {
+    signals.add("AMM");
+  }
+  if (source.includes("AggregatorV3Interface") || source.includes("latestRoundData") || source.includes("Chainlink")) {
+    signals.add("Chainlink");
+  }
   return [...signals];
 }
 
@@ -108,6 +125,24 @@ function extractRiskSignals(source: string): string[] {
   }
   if (source.includes("unchecked")) {
     signals.add("unchecked-block");
+  }
+  // Flash loan callback signals
+  if (
+    source.match(/\.flashLoan\s*\(/) ||
+    source.match(/\.flashLoanSimple\s*\(/) ||
+    source.match(/\.flash\s*\(/) ||
+    source.includes("onFlashLoan") ||
+    source.includes("executeOperation") ||
+    source.includes("receiveFlashLoan")
+  ) {
+    signals.add("flash-loan-callback");
+  }
+  // Spot price read signals
+  if (source.match(/getReserves\s*\(/) || source.match(/getPrice\s*\(/) || source.match(/slot0\s*\(/)) {
+    signals.add("spot-price-read");
+  }
+  if (source.match(/latestAnswer\s*\(/) && !source.match(/updatedAt\s*[><!]/)) {
+    signals.add("stale-oracle-read");
   }
   return [...signals];
 }
@@ -132,6 +167,25 @@ function recommendAgents(source: string, functions: string[], inheritedSignals: 
     agents.add("arithmetic");
   }
 
+  if (
+    riskSignals.includes("flash-loan-callback") ||
+    inheritedSignals.includes("IERC3156") ||
+    inheritedSignals.includes("Aave") ||
+    inheritedSignals.includes("dYdX") ||
+    functions.some((name) => ["onFlashLoan", "executeOperation", "callFunction", "receiveFlashLoan"].includes(name))
+  ) {
+    agents.add("flash-loan");
+  }
+
+  if (
+    riskSignals.includes("spot-price-read") ||
+    riskSignals.includes("stale-oracle-read") ||
+    inheritedSignals.includes("AMM") ||
+    functions.some((name) => ["getPrice", "getReserves", "latestAnswer"].includes(name))
+  ) {
+    agents.add("price-manipulation");
+  }
+
   if (agents.size === 0) {
     agents.add("reentrancy");
     agents.add("access-control");
@@ -141,12 +195,26 @@ function recommendAgents(source: string, functions: string[], inheritedSignals: 
   return [...agents];
 }
 
+function extractImportedPaths(source: string, contractPath: string): string[] {
+  const importRegex = /import\s+(?:\{[^}]+\}\s+from\s+|)["']([^"']+)["']/g;
+  const resolved: string[] = [];
+  let match: RegExpExecArray | null;
+  while ((match = importRegex.exec(source)) !== null) {
+    const importPath = match[1];
+    if (!importPath.startsWith("@") && !importPath.startsWith("forge-std")) {
+      resolved.push(path.resolve(path.dirname(contractPath), importPath));
+    }
+  }
+  return resolved;
+}
+
 export async function analyzeContract(input: AttackPipelineInput): Promise<ContractAnalysis> {
   const contractPath = await selectContract(input.projectRoot, input.contractSelector);
   const source = await fs.readFile(contractPath, "utf8");
   const functions = extractFunctions(source);
   const inheritedSignals = extractInheritedSignals(source);
   const riskSignals = extractRiskSignals(source);
+  const importedPaths = extractImportedPaths(source, contractPath);
 
   return {
     contractName: extractContractName(source, contractPath),
@@ -155,6 +223,84 @@ export async function analyzeContract(input: AttackPipelineInput): Promise<Contr
     inheritedSignals,
     riskSignals,
     recommendedAgents: recommendAgents(source, functions, inheritedSignals, riskSignals),
-    source
+    source,
+    importedPaths
   };
+}
+
+async function analyzeContractByPath(contractPath: string, projectRoot: string): Promise<ContractAnalysis> {
+  const source = await fs.readFile(contractPath, "utf8");
+  const functions = extractFunctions(source);
+  const inheritedSignals = extractInheritedSignals(source);
+  const riskSignals = extractRiskSignals(source);
+  const importedPaths = extractImportedPaths(source, contractPath);
+
+  return {
+    contractName: extractContractName(source, contractPath),
+    contractPath,
+    functions,
+    inheritedSignals,
+    riskSignals,
+    recommendedAgents: recommendAgents(source, functions, inheritedSignals, riskSignals),
+    source,
+    importedPaths
+  };
+}
+
+export function buildDependencyGraph(analyses: ContractAnalysis[]): ContractDependencyGraph {
+  const nodes = analyses.map((a) => a.contractPath);
+  const pathToAnalysis = new Map(analyses.map((a) => [a.contractPath, a]));
+  const edges: ContractDependencyEdge[] = [];
+
+  for (const analysis of analyses) {
+    for (const importedPath of analysis.importedPaths ?? []) {
+      const importedAnalysis = pathToAnalysis.get(importedPath);
+      if (importedAnalysis) {
+        edges.push({
+          importingContract: analysis.contractPath,
+          importedPath,
+          importedContractNames: [importedAnalysis.contractName]
+        });
+      }
+    }
+  }
+
+  // Build call surface: detect `varName.functionName(` patterns and resolve callee by state var type
+  const callSurface: ContractDependencyGraph["callSurface"] = [];
+  const stateVarTypeRegex = /(\w+)\s+(?:public\s+|private\s+|internal\s+)?(\w+)\s*;/g;
+
+  for (const analysis of analyses) {
+    const varTypeMap = new Map<string, string>();
+    let m: RegExpExecArray | null;
+    const re = new RegExp(stateVarTypeRegex.source, "g");
+    while ((m = re.exec(analysis.source)) !== null) {
+      const [, typeName, varName] = m;
+      varTypeMap.set(varName, typeName);
+    }
+
+    const callRegex = /(\w+)\.(\w+)\s*\(/g;
+    while ((m = callRegex.exec(analysis.source)) !== null) {
+      const [, varName, fnName] = m;
+      const typeName = varTypeMap.get(varName);
+      if (typeName) {
+        const calleeAnalysis = analyses.find((a) => a.contractName === typeName);
+        if (calleeAnalysis && calleeAnalysis.contractPath !== analysis.contractPath) {
+          callSurface.push({
+            caller: analysis.contractPath,
+            callee: calleeAnalysis.contractPath,
+            functionName: fnName
+          });
+        }
+      }
+    }
+  }
+
+  return { nodes, edges, callSurface };
+}
+
+export async function analyzeAllContracts(projectRoot: string): Promise<{ analyses: ContractAnalysis[]; graph: ContractDependencyGraph }> {
+  const paths = await discoverContracts(projectRoot);
+  const analyses = await Promise.all(paths.map((contractPath) => analyzeContractByPath(contractPath, projectRoot)));
+  const graph = buildDependencyGraph(analyses);
+  return { analyses, graph };
 }

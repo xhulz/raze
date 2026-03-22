@@ -2,7 +2,7 @@ import { analyzeContract } from "./planner.js";
 import { runAttackAgents } from "./attacker.js";
 import type { AttackFinding, AttackPipelineInput, HardeningSuggestion, HardeningSuggestionResult } from "./types.js";
 
-function suggestionsFromFindings(findings: AttackFinding[]): HardeningSuggestion[] {
+export function suggestionsFromFindings(findings: AttackFinding[]): HardeningSuggestion[] {
   const suggestions = new Map<string, HardeningSuggestion>();
 
   for (const finding of findings) {
@@ -39,6 +39,30 @@ function suggestionsFromFindings(findings: AttackFinding[]): HardeningSuggestion
         confidence: finding.confidence,
         behaviorChange: true,
         followUpTest: `Keep a reentrancy proof test for ${finding.functions[0] ?? "the withdrawal path"} to show the callback can no longer extract excess value.`
+      });
+    }
+
+    if (finding.type === "flash-loan") {
+      suggestions.set("flash-loan", {
+        title: "Add balance invariant checks around flash loan callbacks",
+        issue: finding.description,
+        whyItMatters: "Flash loan callbacks execute arbitrary logic inside a single transaction. Without invariant checks, an attacker can borrow large sums, distort contract state, and repay before the transaction reverts.",
+        recommendedChange: "Record the contract's token balance or critical reserve state before delegating to the callback. Assert the invariant holds after the callback returns and before accepting repayment. Apply nonReentrant to all callback entry points.",
+        confidence: finding.confidence,
+        behaviorChange: true,
+        followUpTest: `Add a proof test using a mock flash lender that shows ${finding.functions[0] ?? "the callback"} cannot be used to skew protected state within a single atomic transaction.`
+      });
+    }
+
+    if (finding.type === "price-manipulation") {
+      suggestions.set("price-manipulation", {
+        title: "Replace spot price reads with TWAP or Chainlink feed with staleness check",
+        issue: finding.description,
+        whyItMatters: "Single-block AMM spot prices can be moved by a large swap in the same transaction, enabling attackers to feed manipulated prices to dependent logic — especially when combined with a flash loan.",
+        recommendedChange: "Use a TWAP oracle (Uniswap V3 observe(), or a custom accumulator) with a minimum observation window of at least 15 minutes. If using Chainlink, validate updatedAt against block.timestamp with a staleness threshold. Never trust a single getReserves() call as a price source.",
+        confidence: finding.confidence,
+        behaviorChange: true,
+        followUpTest: `Add a fuzz test that drives manipulated reserves into ${finding.functions[0] ?? "the price-consuming function"} and asserts the result stays within a tolerated band from the fair price baseline.`
       });
     }
   }

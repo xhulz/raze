@@ -58,8 +58,13 @@ test("generateProofScaffolds materializes an access-control proof with observabl
 
   const [generated] = await generateProofScaffolds(tmpRoot, [validatedPlan]);
   assert.match(generated.source, /uint256 beforeValue = uint256\(target\.balances\(0x000000000000000000000000000000000000BEEF\)\);/);
+  assert.match(generated.source, /vm\.prank\(address\(0xDEAD\)\);/);
   assert.match(generated.source, /target\.mint\(0x000000000000000000000000000000000000BEEF, 5\);/);
   assert.match(generated.source, /require\(afterValue != beforeValue, "unauthorized call did not mutate observable state"\);/);
+  assert.match(generated.source, /interface Vm/);
+  // Regression scaffold assertions
+  assert.match(generated.source, /function test_access_control_regression/);
+  assert.match(generated.source, /vm\.expectRevert\(\)/);
 });
 
 test("runAttackPipeline reports ai-orchestrated provenance distinctly from heuristic fallback", async () => {
@@ -124,4 +129,37 @@ test("runAttackPipeline can confirm reentrancy when the scaffold proves reentry 
   assert.match(result.generatedTests[0]?.source ?? "", /reentrant callback was not observed/);
   assert.match(result.generatedTests[0]?.source ?? "", /attacker did not extract excess value/);
   assert.match(result.assessment.interpretation, /execution-backed confirmation/i);
+});
+
+test("generateProofScaffolds uses lender scaffold for contracts that expose flashLoan()", async () => {
+  const tmpRoot = await fs.mkdtemp(path.join(os.tmpdir(), "raze-flash-lender-"));
+  await fs.cp(path.join(fixturesRoot, "flash-loan-lender"), tmpRoot, { recursive: true });
+
+  const { validatedPlan } = await validateAttackPlan(
+    {
+      projectRoot: tmpRoot,
+      contractSelector: "FlashLoanVault",
+      executionContext: "mcp"
+    },
+    {
+      attackType: "flash-loan",
+      contractName: "FlashLoanVault",
+      functionNames: ["flashLoan"],
+      attackHypothesis: "flashLoan updates totalDeposits before the callback with no invariant check.",
+      proofGoal: "Show totalDeposits is inflated during the callback.",
+      expectedOutcome: "observedStateValue > beforeValue after the attack.",
+      callerRole: "attacker-contract",
+      targetStateVariable: "totalDeposits",
+      assertionKind: "flash-loan-extraction"
+    },
+    "ai-authored"
+  );
+
+  assert.equal(validatedPlan.flashLoanRole, "lender");
+
+  const [generated] = await generateProofScaffolds(tmpRoot, [validatedPlan]);
+  assert.match(generated.source, /target\.flashLoan\(address\(this\)/);
+  assert.match(generated.source, /FlashLoanVaultFlashLoanBorrower/);
+  assert.match(generated.source, /observedStateValue/);
+  assert.doesNotMatch(generated.source, /MockFlashLender/);
 });

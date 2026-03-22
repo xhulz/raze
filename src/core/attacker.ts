@@ -1,12 +1,16 @@
 import { AccessControlAgent } from "../agents/accessControl.agent.js";
 import { ArithmeticAgent } from "../agents/arithmetic.agent.js";
+import { FlashLoanAgent } from "../agents/flashLoan.agent.js";
+import { PriceManipulationAgent } from "../agents/priceManipulation.agent.js";
 import { ReentrancyAgent } from "../agents/reentrancy.agent.js";
 import type { AttackAgent, AttackFinding, ContractAnalysis } from "./types.js";
 
 const AGENTS: Record<string, AttackAgent> = {
   reentrancy: new ReentrancyAgent(),
   "access-control": new AccessControlAgent(),
-  arithmetic: new ArithmeticAgent()
+  arithmetic: new ArithmeticAgent(),
+  "flash-loan": new FlashLoanAgent(),
+  "price-manipulation": new PriceManipulationAgent()
 };
 
 export function runAttackAgents(analysis: ContractAnalysis): AttackFinding[] {

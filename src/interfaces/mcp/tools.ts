@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { analyzeContract } from "../../core/planner.js";
 import { runAttackPipeline } from "../../core/pipeline.js";
-import { runForgeTests } from "../../core/runner.js";
 import { generateDeveloperFuzzTests } from "../../core/developerFuzz.js";
 import { suggestHardening } from "../../core/hardening.js";
 import { runAttackSuite } from "../../core/attackSuite.js";
@@ -11,7 +10,7 @@ import { inspectProject, validateAttackPlan } from "../../core/orchestrator.js";
 import { writeReport } from "../../core/reporter.js";
 
 const attackPlanSchema = z.object({
-  attackType: z.enum(["reentrancy", "access-control", "arithmetic"]),
+  attackType: z.enum(["reentrancy", "access-control", "arithmetic", "flash-loan", "price-manipulation"]),
   contractName: z.string().min(1).optional(),
   functionNames: z.array(z.string().min(1)).min(1),
   attackHypothesis: z.string().min(1),
@@ -19,7 +18,7 @@ const attackPlanSchema = z.object({
   expectedOutcome: z.string().min(1),
   callerRole: z.string().min(1).optional(),
   targetStateVariable: z.string().min(1).optional(),
-  assertionKind: z.enum(["unauthorized-state-change", "arithmetic-drift", "reentrant-state-inconsistency"]),
+  assertionKind: z.enum(["unauthorized-state-change", "arithmetic-drift", "reentrant-state-inconsistency", "flash-loan-extraction", "price-oracle-drift"]),
   sampleArguments: z.array(z.union([z.string(), z.number(), z.boolean()])).optional()
 });
 
@@ -50,7 +49,7 @@ const validatedPlanSchema = attackPlanSchema.extend({
 });
 
 const generatedTestSchema = z.object({
-  findingType: z.enum(["reentrancy", "access-control", "arithmetic"]),
+  findingType: z.enum(["reentrancy", "access-control", "arithmetic", "flash-loan", "price-manipulation"]),
   testFilePath: z.string(),
   source: z.string(),
   planSource: z.enum(["ai-authored", "heuristic-fallback"]),
@@ -73,7 +72,7 @@ const forgeRunSchema = z.object({
 });
 
 const findingSchema = z.object({
-  type: z.enum(["reentrancy", "access-control", "arithmetic"]),
+  type: z.enum(["reentrancy", "access-control", "arithmetic", "flash-loan", "price-manipulation"]),
   confidence: z.enum(["low", "medium", "high"]),
   description: z.string(),
   attackVector: z.string(),
@@ -86,16 +85,26 @@ const validateAttackPlanSchema = projectSchema.extend({
   attackPlan: attackPlanSchema
 });
 
+// MCP-specific schemas: attackPlan/attackPlans are required (not optional).
+// Avoids client-side enum validation failures caused by z.enum() inside optional nested objects.
+const attackSchemaMcp = projectSchema.extend({
+  runForge: z.boolean().optional(),
+  offline: z.boolean().optional(),
+  attackPlan: attackPlanSchema
+});
+
 const attackSuiteSchema = projectSchema.extend({
   offline: z.boolean().optional(),
   runForge: z.boolean().optional(),
   attackPlans: z.array(attackPlanSchema).optional()
 });
 
-const runFuzzTestsSchema = z.object({
-  projectRoot: z.string().min(1),
-  offline: z.boolean().optional()
+const attackSuiteSchemaMcp = projectSchema.extend({
+  offline: z.boolean().optional(),
+  runForge: z.boolean().optional(),
+  attackPlans: z.array(attackPlanSchema)
 });
+
 
 const reportWriteSchema = z.object({
   projectRoot: z.string().min(1),
@@ -184,7 +193,7 @@ function missingPlanError(kind: "attackPlan" | "attackPlans") {
 
 export const toolDefinitions = {
   raze_inspect_project: {
-    description: "Inspect a Foundry project and return contract inventory, paths, functions, and heuristic hints.",
+    description: "Scan all contracts in a Foundry project and return the full inventory, dependency graph, and cross-contract risk signals. Use this first when you don't know which contract to target.",
     schema: z.object({
       projectRoot: z.string().min(1)
     }),
@@ -194,13 +203,10 @@ export const toolDefinitions = {
     }
   },
   raze_attack: {
-    description: "Execute a single AI-authored attack plan over a contract. MCP mode requires `attackPlan`.",
-    schema: attackSchema,
+    description: "Execute a single AI-authored attack plan over a contract.",
+    schema: attackSchemaMcp,
     async execute(input: unknown) {
-      const parsed = attackSchema.parse(input);
-      if (!parsed.attackPlan) {
-        return missingPlanError("attackPlan");
-      }
+      const parsed = attackSchemaMcp.parse(input);
       return runAttackPipeline({
         projectRoot: parsed.projectRoot,
         contractSelector: parsed.contractSelector,
@@ -220,7 +226,7 @@ export const toolDefinitions = {
     }
   },
   raze_analyze_contract: {
-    description: "Return structured contract analysis, attack surface, and heuristic risk hints.",
+    description: "Deep-analyze a single contract with attack agents and return heuristic findings per vulnerability class. Use this after you know which contract to target.",
     schema: projectSchema,
     async execute(input: unknown) {
       const parsed = projectSchema.parse(input);
@@ -283,13 +289,10 @@ export const toolDefinitions = {
     }
   },
   raze_run_attack_suite: {
-    description: "Run an AI-authored multi-plan attack suite across the target contract. MCP mode requires `attackPlans`.",
-    schema: attackSuiteSchema,
+    description: "Run an AI-authored multi-plan attack suite across the target contract.",
+    schema: attackSuiteSchemaMcp,
     async execute(input: unknown) {
-      const parsed = attackSuiteSchema.parse(input);
-      if (!parsed.attackPlans || parsed.attackPlans.length === 0) {
-        return missingPlanError("attackPlans");
-      }
+      const parsed = attackSuiteSchemaMcp.parse(input);
       return runAttackSuite({
         projectRoot: parsed.projectRoot,
         contractSelector: parsed.contractSelector,
@@ -298,14 +301,6 @@ export const toolDefinitions = {
         attackPlans: parsed.attackPlans,
         executionContext: "mcp"
       });
-    }
-  },
-  raze_run_fuzz_tests: {
-    description: "Execute forge test and return structured output.",
-    schema: runFuzzTestsSchema,
-    async execute(input: unknown) {
-      const parsed = runFuzzTestsSchema.parse(input);
-      return runForgeTests(parsed.projectRoot, { offline: parsed.offline });
     }
   },
   raze_write_report: {

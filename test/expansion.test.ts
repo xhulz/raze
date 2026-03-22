@@ -126,7 +126,7 @@ test("runAttackSuite uses AI-authored plans as the primary suite mode and preser
   assert.ok(result.planResults.every((plan) => plan.validatedPlan));
   assert.ok(result.planResults.some((plan) => plan.attackType === "reentrancy" && plan.assessment.confirmationStatus === "confirmed-by-execution"));
   assert.ok(result.planResults.some((plan) => plan.attackType === "access-control" && plan.assessment.confirmationStatus === "confirmed-by-execution"));
-  assert.equal(result.familySummary.length, 3);
+  assert.equal(result.familySummary.length, 5);
   assert.ok(result.familySummary.some((family) => family.attackType === "reentrancy"));
   assert.ok(result.familySummary.some((family) => family.attackType === "access-control"));
   assert.ok(result.forgeRun?.ok);
@@ -146,76 +146,30 @@ test("runAttackSuite falls back to heuristic sweep when no plans are supplied", 
   assert.ok(result.planResults.every((plan) => plan.analysisSource === "heuristic"));
 });
 
-test("raze_attack returns a structured MCP error when attackPlan is missing", async () => {
-  const result = await toolDefinitions.raze_attack.execute({
-    projectRoot: path.join(fixturesRoot, "access-control"),
-    contractSelector: "Token"
-  });
-
-  assert.deepEqual(result, {
-    error: {
-      code: "missing_ai_authored_plan",
-      message: "MCP attack execution requires an AI-authored `attackPlan`. Heuristic fallback is only available via CLI/local mode.",
-      missing: "attackPlan",
-      guidance: "Provide `attackPlan` in MCP mode, or use the CLI fallback if you want Raze to derive plans heuristically.",
-      whatHappened: "The MCP attack flow was called without an authored single-plan payload.",
-      whatToSend: "Retry with `attackPlan` populated with the attack type, target functions, proof goal, and expected outcome.",
-      exampleMinimalInput: {
-        projectRoot: "/path/to/foundry-project",
-        contractSelector: "Counter",
-        runForge: true,
-        offline: true,
-        attackPlan: {
-          attackType: "access-control",
-          contractName: "Counter",
-          functionNames: ["mint"],
-          attackHypothesis: "mint is a privileged mutation path that lacks access control",
-          proofGoal: "show that an arbitrary caller can mutate tracked state through mint",
-          expectedOutcome: "the observable state changes after an unauthorized mint call",
-          callerRole: "attacker",
-          assertionKind: "unauthorized-state-change",
-          sampleArguments: [5]
-        }
-      },
-      cliFallbackHint: "Use `raze fuzz` in the CLI if you want Raze to derive a heuristic fallback plan locally."
+test("raze_attack schema rejects calls without attackPlan", async () => {
+  await assert.rejects(
+    () => toolDefinitions.raze_attack.execute({
+      projectRoot: path.join(fixturesRoot, "access-control"),
+      contractSelector: "Token"
+    }),
+    (err: unknown) => {
+      assert.ok(err instanceof Error);
+      assert.match(err.message, /attackPlan|invalid/i);
+      return true;
     }
-  });
+  );
 });
 
-test("raze_run_attack_suite returns a structured MCP error when attackPlans are missing", async () => {
-  const result = await toolDefinitions.raze_run_attack_suite.execute({
-    projectRoot: path.join(fixturesRoot, "access-control"),
-    contractSelector: "Token"
-  });
-
-  assert.deepEqual(result, {
-    error: {
-      code: "missing_ai_authored_plan",
-      message: "MCP attack suite execution requires AI-authored `attackPlans`. Heuristic fallback is only available via CLI/local mode.",
-      missing: "attackPlans",
-      guidance: "Provide `attackPlans` in MCP mode, or use the CLI fallback if you want Raze to derive plans heuristically.",
-      whatHappened: "The MCP attack suite flow was called without authored multi-plan input.",
-      whatToSend: "Retry with `attackPlans`, where each item is an authored attack plan with target functions, proof goal, and expected outcome.",
-      exampleMinimalInput: {
-        projectRoot: "/path/to/foundry-project",
-        contractSelector: "Counter",
-        runForge: true,
-        offline: true,
-        attackPlans: [
-          {
-            attackType: "access-control",
-            contractName: "Counter",
-            functionNames: ["mint"],
-            attackHypothesis: "mint is a privileged mutation path that lacks access control",
-            proofGoal: "show that an arbitrary caller can mutate tracked state through mint",
-            expectedOutcome: "the observable state changes after an unauthorized mint call",
-            callerRole: "attacker",
-            assertionKind: "unauthorized-state-change",
-            sampleArguments: [5]
-          }
-        ]
-      },
-      cliFallbackHint: "Use `raze fuzz` in the CLI if you want Raze to derive heuristic fallback plans locally."
+test("raze_run_attack_suite schema rejects calls without attackPlans", async () => {
+  await assert.rejects(
+    () => toolDefinitions.raze_run_attack_suite.execute({
+      projectRoot: path.join(fixturesRoot, "access-control"),
+      contractSelector: "Token"
+    }),
+    (err: unknown) => {
+      assert.ok(err instanceof Error);
+      assert.match(err.message, /attackPlans|invalid/i);
+      return true;
     }
-  });
+  );
 });

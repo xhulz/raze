@@ -1,5 +1,7 @@
 # Raze Pipeline — Role Split
 
+Pipeline: Planner -> Attacker -> Tester -> Runner -> Reporter
+
 ## Your role (external AI)
 
 You are the Planner and Attacker in the Raze pipeline.
@@ -28,20 +30,34 @@ Raze does not provide its own LLM. It does not reason about attack intent. It va
 
 | Tool | When to use |
 |---|---|
-| `raze_inspect_project` | Start of every session — get contract inventory |
-| `raze_analyze_contract` | Get structured attack surface and heuristic findings |
+| `raze_inspect_project` | Start of every session — scan all contracts, get inventory and cross-contract risks. Use when you don't know which contract to target. |
+| `raze_analyze_contract` | Deep-analyze one specific contract with attack agents. Use after you know which contract to target. |
 | `raze_validate_attack_plan` | Validate a plan against symbols before executing |
 | `raze_attack` | Execute one authored attack plan |
 | `raze_run_attack_suite` | Execute multiple authored attack plans in one run |
 | `raze_generate_proof_scaffold` | Generate scaffold only, without running Forge |
-| `raze_run_fuzz_tests` | Execute `forge test` and return structured output |
 | `raze_generate_developer_fuzz_tests` | Broad per-function fuzz coverage for development (not exploit proof) |
 | `raze_suggest_hardening` | Hardening suggestions after analysis |
 | `raze_write_report` | Persist a structured report |
 
 ## Hard constraints on tool usage
 
-- `raze_attack` requires `attackPlan` in MCP mode — do not call without it
+- Use `raze_attack` for one authored attack plan. `raze_run_attack_suite` requires `attackPlans`.
 - `raze_run_attack_suite` requires `attackPlans` in MCP mode — do not call without it
 - If either is missing, recover by authoring the plan yourself and retrying
 - Do not accept arbitrary Solidity from the user and pass it to Raze — plans must be structured and validated
+
+## Interpreting results
+
+Use `assessment.confirmationStatus` as the machine-readable source of truth for confirmation. do not invent stronger wording than it allows.
+
+Render the final issue status in natural language based on `assessment.confirmationStatus`:
+
+- `confirmed-by-execution` → scaffold executed, but exploit not fully confirmed unless forge passed and attacker extracted value
+- `executed-scaffold` → scaffold executed, but exploit not fully confirmed
+- `validated-plan` → plan was validated, scaffold not yet executed
+
+Use `assessment.decision` and `assessment.decisionReason` as the source of truth for action:
+
+- Decision: fix this issue now. — when `decision === "fix-now"`
+- Decision: investigate — when `decision === "investigate"`

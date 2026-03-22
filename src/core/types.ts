@@ -1,8 +1,8 @@
-export type AttackType = "reentrancy" | "access-control" | "arithmetic";
+export type AttackType = "reentrancy" | "access-control" | "arithmetic" | "flash-loan" | "price-manipulation";
 
 export type Confidence = "low" | "medium" | "high";
 
-export type AssertionKind = "unauthorized-state-change" | "arithmetic-drift" | "reentrant-state-inconsistency";
+export type AssertionKind = "unauthorized-state-change" | "arithmetic-drift" | "reentrant-state-inconsistency" | "flash-loan-extraction" | "price-oracle-drift";
 export type AnalysisSource = "heuristic" | "ai-orchestrated";
 export type HypothesisStatus = "none" | "ai-proposed" | "validated";
 export type ProofStatus = "no-scaffold" | "scaffold-generated" | "executed";
@@ -24,6 +24,7 @@ export interface ContractAnalysis {
   riskSignals: string[];
   recommendedAgents: AttackType[];
   source: string;
+  importedPaths?: string[];
 }
 
 export interface AttackFinding {
@@ -57,6 +58,7 @@ export interface ValidatedAttackPlan extends AttackPlanInput {
   targetStateVariableType?: string;
   targetStateVariableKeyType?: string;
   normalizedSampleArguments: Array<string | number | boolean>;
+  flashLoanRole?: "lender" | "receiver";
 }
 
 export interface GeneratedTest {
@@ -125,6 +127,7 @@ export interface AttackPipelineResult {
   proofStatus: ProofStatus;
   assessment: AttackAssessment;
   reportPath: string;
+  crossContractFindings?: CrossContractFinding[];
 }
 
 export interface HardeningSuggestion {
@@ -182,6 +185,32 @@ export interface AttackAgent {
   analyze(input: ContractAnalysis): AttackFinding[];
 }
 
+export interface ContractDependencyEdge {
+  importingContract: string;
+  importedPath: string;
+  importedContractNames: string[];
+}
+
+export interface ContractDependencyGraph {
+  nodes: string[];
+  edges: ContractDependencyEdge[];
+  callSurface: Array<{
+    caller: string;
+    callee: string;
+    functionName: string;
+  }>;
+}
+
+export interface CrossContractFinding {
+  type: AttackType;
+  confidence: Confidence;
+  callerContract: string;
+  calleeContract: string;
+  calleeFunction: string;
+  description: string;
+  attackVector: string;
+}
+
 export interface ProjectInspection {
   projectRoot: string;
   contracts: Array<{
@@ -191,7 +220,10 @@ export interface ProjectInspection {
     inheritedSignals: string[];
     riskSignals: string[];
     recommendedAgents: AttackType[];
+    importedPaths?: string[];
   }>;
+  dependencyGraph: ContractDependencyGraph;
+  crossContractFindings: CrossContractFinding[];
 }
 
 export interface DetectedEnvironment {

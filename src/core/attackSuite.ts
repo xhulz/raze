@@ -18,7 +18,7 @@ import type {
   ValidatedAttackPlan
 } from "./types.js";
 
-const ALL_ATTACK_TYPES: AttackType[] = ["reentrancy", "access-control", "arithmetic"];
+const ALL_ATTACK_TYPES: AttackType[] = ["reentrancy", "access-control", "arithmetic", "flash-loan", "price-manipulation"];
 
 function toFamilySummary(planResults: AttackSuitePlanResult[]): AttackSuiteFamilyResult[] {
   return ALL_ATTACK_TYPES.map((attackType) => {

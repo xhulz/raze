@@ -1,10 +1,12 @@
-import type { AttackAssessment, GeneratedTest, ValidatedAttackPlan, ForgeRunResult, AttackFinding } from "./types.js";
+import type { AttackAssessment, CrossContractFinding, GeneratedTest, ValidatedAttackPlan, ForgeRunResult, AttackFinding } from "./types.js";
 
 interface AssessableResult {
   findings: AttackFinding[];
   validatedPlans: ValidatedAttackPlan[];
   generatedTests: GeneratedTest[];
   forgeRun?: ForgeRunResult;
+  crossContractFindings?: CrossContractFinding[];
+  targetContractName?: string;
 }
 
 function canExecutionConfirm(result: AssessableResult): boolean {
@@ -23,7 +25,7 @@ export function buildAttackAssessment(result: AssessableResult): AttackAssessmen
   const findingStatus = result.findings.length > 0 ? "heuristic-findings" : "no-findings";
   const testStatus = result.generatedTests.length > 0 ? "proof-scaffolds-generated" : "no-tests";
   const executionStatus = result.forgeRun ? (result.forgeRun.ok ? "forge-passed" : "forge-failed") : "not-run";
-  const confirmationStatus =
+  let confirmationStatus: AttackAssessment["confirmationStatus"] =
     result.generatedTests.length === 0
       ? result.validatedPlans.length > 0
         ? "validated-plan"
@@ -70,6 +72,28 @@ export function buildAttackAssessment(result: AssessableResult): AttackAssessmen
   } else if (confirmationStatus === "suspected-only") {
     decision = "review";
     decisionReason = "Heuristic findings suggest risk, but no validated execution-backed proof exists yet.";
+  }
+
+  // Cross-contract upgrade pass: findings referencing the target contract upgrade the decision
+  const relevantCrossContract = (result.crossContractFindings ?? []).filter(
+    (f) =>
+      !result.targetContractName ||
+      f.callerContract === result.targetContractName ||
+      f.calleeContract === result.targetContractName
+  );
+
+  if (relevantCrossContract.length > 0) {
+    const highOrMedium = relevantCrossContract.some((f) => f.confidence === "high" || f.confidence === "medium");
+    if (decision === "no-action") {
+      decision = "review";
+      decisionReason = `No direct findings, but cross-contract risk signal detected: ${relevantCrossContract[0]!.callerContract} → ${relevantCrossContract[0]!.calleeContract}.${relevantCrossContract[0]!.calleeFunction}().`;
+    } else if (decision === "review" && highOrMedium) {
+      decision = "investigate";
+      decisionReason += ` Cross-contract risk signal: ${relevantCrossContract[0]!.callerContract} → ${relevantCrossContract[0]!.calleeContract}.${relevantCrossContract[0]!.calleeFunction}().`;
+    }
+    if (confirmationStatus === "none") {
+      confirmationStatus = "suspected-only";
+    }
   }
 
   return {

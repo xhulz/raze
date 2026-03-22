@@ -42,7 +42,7 @@ test("runDeveloperFuzzCommand prints generated test files and fuzz families", as
   assert.match(output, /mint: success-path, input-boundary, access-sensitive, state-transition/);
 });
 
-test("runFuzzCommand prints mode, current-run generated tests, overall forge totals, and report path", async () => {
+test("runFuzzCommand prints contract name, decision, proof scaffolds, forge totals, and report path", async () => {
   const tmpRoot = await fs.mkdtemp(path.join(os.tmpdir(), "raze-cli-fuzz-"));
   await fs.cp(path.join(fixturesRoot, "access-control"), tmpRoot, { recursive: true });
 
@@ -50,13 +50,9 @@ test("runFuzzCommand prints mode, current-run generated tests, overall forge tot
     await runFuzzCommand(tmpRoot, { contract: "Token", run: true, offline: true });
   });
 
-  assert.match(output, /Mode: Heuristic fallback/);
-  assert.match(output, /Generated proof scaffolds in this run:/);
-  assert.match(output, /Generated test files:/);
-  assert.match(output, /Overall Forge totals:/);
-  assert.match(output, /Decision:/);
-  assert.match(output, /Why:/);
-  assert.match(output, /Final issue status:/);
+  assert.match(output, /Token —/);
+  assert.match(output, /Proof scaffolds:/);
+  assert.match(output, /test\/raze\/Token\.access_control\.t\.sol/);
   assert.match(output, /Report: \.raze\/reports\/fuzz\.md/);
 });
 

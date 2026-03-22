@@ -37,6 +37,51 @@ test("attack agents return findings for access control fixture", async () => {
   assert.ok(findings.some((finding) => finding.type === "access-control"));
 });
 
+test("analyzeContract selects flash-loan agent for flash-loan fixture", async () => {
+  const analysis = await analyzeContract({
+    projectRoot: path.join(fixturesRoot, "flash-loan"),
+    executionContext: "cli"
+  });
+
+  assert.equal(analysis.contractName, "FlashLoanVault");
+  assert.ok(analysis.recommendedAgents.includes("flash-loan"), `expected flash-loan in ${analysis.recommendedAgents.join(", ")}`);
+});
+
+test("flash-loan agent returns findings for flash-loan fixture", async () => {
+  const analysis = await analyzeContract({
+    projectRoot: path.join(fixturesRoot, "flash-loan"),
+    executionContext: "cli"
+  });
+
+  const findings = runAttackAgents(analysis);
+  assert.ok(findings.some((f) => f.type === "flash-loan"), `expected flash-loan finding, got: ${findings.map((f) => f.type).join(", ")}`);
+  const finding = findings.find((f) => f.type === "flash-loan")!;
+  assert.ok(finding.confidence === "high" || finding.confidence === "medium");
+  assert.ok(finding.functions.includes("onFlashLoan"));
+});
+
+test("analyzeContract selects price-manipulation agent for price-manipulation fixture", async () => {
+  const analysis = await analyzeContract({
+    projectRoot: path.join(fixturesRoot, "price-manipulation"),
+    executionContext: "cli"
+  });
+
+  assert.equal(analysis.contractName, "OracleConsumer");
+  assert.ok(analysis.recommendedAgents.includes("price-manipulation"), `expected price-manipulation in ${analysis.recommendedAgents.join(", ")}`);
+});
+
+test("price-manipulation agent returns findings for price-manipulation fixture", async () => {
+  const analysis = await analyzeContract({
+    projectRoot: path.join(fixturesRoot, "price-manipulation"),
+    executionContext: "cli"
+  });
+
+  const findings = runAttackAgents(analysis);
+  assert.ok(findings.some((f) => f.type === "price-manipulation"), `expected price-manipulation finding, got: ${findings.map((f) => f.type).join(", ")}`);
+  const finding = findings.find((f) => f.type === "price-manipulation")!;
+  assert.equal(finding.confidence, "high");
+});
+
 test("generateProofScaffolds writes deterministic Foundry tests", async () => {
   const tmpRoot = await fs.mkdtemp(path.join(os.tmpdir(), "raze-tests-"));
   await fs.cp(path.join(fixturesRoot, "arithmetic"), tmpRoot, { recursive: true });
@@ -66,12 +111,51 @@ test("runAttackPipeline produces a report", async () => {
   const report = await fs.readFile(result.reportPath, "utf8");
   assert.ok(result.generatedTests.length > 0);
   assert.match(result.reportPath, /\.raze\/reports\/fuzz\.md$/);
-  assert.match(report, /Raze Fuzz Report/);
+  assert.match(report, /Raze Security Report/);
   assert.equal(result.assessment.findingStatus, "heuristic-findings");
   assert.equal(result.assessment.decision, "investigate");
-  assert.match(report, /Heuristic Findings/);
-  assert.match(report, /Generated Tests In This Run/);
-  assert.match(report, /Decision: investigate/);
-  assert.match(report, /Why: There is validated attack evidence/);
-  assert.match(report, /Next step:/);
+  assert.match(report, /Findings/);
+  assert.match(report, /Verdict/);
+  assert.match(report, /INVESTIGATE/);
+  assert.match(report, /What to do next/);
+});
+
+test("reentrancy scaffold includes regression test function", async () => {
+  const tmpRoot = await fs.mkdtemp(path.join(os.tmpdir(), "raze-reentrancy-regression-"));
+  await fs.cp(path.join(fixturesRoot, "reentrancy"), tmpRoot, { recursive: true });
+  const result = await runAttackPipeline({
+    projectRoot: tmpRoot,
+    executionContext: "cli",
+    attackPlan: {
+      attackType: "reentrancy",
+      contractName: "Vault",
+      functionNames: ["withdraw"],
+      attackHypothesis: "withdraw performs an external call before balances are cleared.",
+      proofGoal: "Show that a callback can revisit withdraw before the balance is zeroed.",
+      expectedOutcome: "Attacker callback reaches the target function multiple times.",
+      callerRole: "attacker-contract",
+      assertionKind: "reentrant-state-inconsistency",
+      sampleArguments: []
+    }
+  });
+
+  const source = result.generatedTests[0]?.source ?? "";
+  assert.match(source, /function test_reentrancy_regression/);
+  assert.match(source, /reentrant callback should have been blocked by fix/);
+  assert.match(source, /attacker should not extract excess value after fix/);
+});
+
+test("cross-contract findings upgrade decision from no-action to review", async () => {
+  const tmpRoot = await fs.mkdtemp(path.join(os.tmpdir(), "raze-cross-contract-"));
+  await fs.cp(path.join(fixturesRoot, "cross-contract"), tmpRoot, { recursive: true });
+  const result = await runAttackPipeline({
+    projectRoot: tmpRoot,
+    executionContext: "cli"
+  });
+
+  assert.ok(
+    result.assessment.decision === "review" || result.assessment.decision === "investigate" || result.assessment.decision === "fix-now",
+    `expected decision >= review, got: ${result.assessment.decision}`
+  );
+  assert.ok((result.crossContractFindings?.length ?? 0) > 0, "expected cross-contract findings");
 });

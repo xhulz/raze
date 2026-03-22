@@ -16,7 +16,7 @@ function parseForgeSummary(stdout: string): ForgeRunResult["summary"] {
 }
 
 export async function runForgeTests(projectRoot: string, options: { offline?: boolean } = {}): Promise<ForgeRunResult> {
-  const args = ["test", ...(options.offline ? ["--offline"] : []), "--root", projectRoot];
+  const args = ["test", "--match-test", "proof_scaffold", ...(options.offline ? ["--offline"] : []), "--root", projectRoot];
   const result = await execFileSafe("forge", args, {
     cwd: projectRoot
   });

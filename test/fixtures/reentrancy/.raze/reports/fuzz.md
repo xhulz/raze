@@ -1,46 +1,62 @@
 # Raze Fuzz Report
 
-## Assessment
+## Overview
 
-- Analysis source: ai-orchestrated
-- Hypothesis status: validated
-- Proof status: executed
+- Contract: Vault
+- Analysis source: heuristic
+- Hypothesis status: none
+- Proof status: scaffold-generated
+- Generated tests in this run: 1
+
+## Summary
+
+- Decision: investigate
+- Severity: HIGH
+- Confirmed: Vault.withdraw (reentrancy, high)
+- Next: Run Forge against the generated scaffold to move from a validated plan to an execution-backed result.
+
+## Final Status
+
+- Decision: investigate
+- Why: There is validated attack evidence, but the issue is not fully confirmed by execution yet.
 - Finding status: heuristic-findings
 - Test status: proof-scaffolds-generated
-- Execution status: forge-passed
-- Confirmation status: confirmed-by-execution
-- Interpretation: A validated attack plan was materialized into a proof scaffold and the resulting Forge run reproduced the targeted unsafe behavior. Treat this as execution-backed confirmation for the supported scaffold family.
+- Execution status: not-run
+- Confirmation status: validated-plan
+- Interpretation: Attack intent was validated against real project symbols and a supported proof shape, but execution has not yet confirmed the issue. Treat this as a validated plan, not a confirmed exploit.
+- Next step: Run Forge against the generated scaffold to move from a validated plan to an execution-backed result.
 
 ## Heuristic Findings
 
-## 1. reentrancy
+## 1. reentrancy (high) — HIGH
 
 - Contract: Vault
-- Confidence: high
+- Functions: withdraw
 - Description: External value transfer appears reachable before reentrancy protection is applied.
 - Attack vector: Attacker re-enters the withdrawal path before internal accounting is finalized.
-- Suggested proof strategy: Deploy a malicious receiver that re-enters the target withdrawal function until balances diverge.
-- Functions: withdraw
+- Proof scaffold: test/raze/Vault.reentrancy.t.sol
+- Recommended fix: Finalize internal accounting before external value transfer
+  - Why it matters: External calls before internal state finalization can allow reentrant callbacks to reuse the vulnerable path.
+  - Change: Apply checks-effects-interactions ordering or an explicit reentrancy guard before the external call occurs.
 
 ## Validated Attack Plans
 
 ## 1. reentrancy
 
-- Source: ai-authored
+- Source: heuristic-fallback
 - Contract: Vault
 - Functions: withdraw
-- Hypothesis: withdraw performs an external call before clearing state, allowing reentrant reuse of the vulnerable path
-- Proof goal: show that a reentrant callback can revisit withdraw before balances are cleared and extract excess value
-- Expected outcome: the attacker callback re-enters withdraw in a single execution flow and ends with more ether than it initially deposited
+- Hypothesis: Attacker re-enters the withdrawal path before internal accounting is finalized.
+- Proof goal: Demonstrate that a reentrant callback can revisit the vulnerable path.
+- Expected outcome: Attacker callback reaches the target function multiple times in one flow.
 - Assertion kind: reentrant-state-inconsistency
 - Target state variable: balances
 
-## Generated Proof Scaffolds
+## Generated Tests In This Run
 
-- test/raze/Vault.reentrancy.t.sol (reentrancy, ai-authored, proof scaffold)
+- test/raze/Vault.reentrancy.t.sol (reentrancy, heuristic-fallback, proof scaffold)
 
-## Forge Run
+## Execution Result
 
-- Command: `forge test --offline --root /Users/marcosschulz/Documents/Code/IA/AUDIT/test/fixtures/reentrancy`
-- Execution success: true
-- Exit code: 0
+- Not executed
+- Generated tests in this run: 1

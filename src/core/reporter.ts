@@ -11,8 +11,6 @@ export async function writeReport(result: Omit<AttackPipelineResult, "reportPath
   const reportPath = path.join(reportsDir, "fuzz.md");
 
   const suggestions = suggestionsFromFindings(result.findings);
-  const suggestionsByType = new Map(suggestions.map((s) => [result.findings.find((f) => suggestions.indexOf(s) !== -1)?.type ?? "", s]));
-  // Build a direct map: finding type → suggestion
   const fixByType = new Map<string, (typeof suggestions)[0]>();
   for (const finding of result.findings) {
     const match = suggestions.find((s) => {
@@ -25,7 +23,6 @@ export async function writeReport(result: Omit<AttackPipelineResult, "reportPath
     });
     if (match) fixByType.set(finding.type, match);
   }
-  void suggestionsByType;
 
   // Verdict table
   const decisionLabel = result.assessment.decision.toUpperCase();

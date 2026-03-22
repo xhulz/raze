@@ -27,12 +27,6 @@ const projectSchema = z.object({
   contractSelector: z.string().min(1).optional()
 });
 
-const attackSchema = projectSchema.extend({
-  runForge: z.boolean().optional(),
-  offline: z.boolean().optional(),
-  attackPlan: attackPlanSchema.optional()
-});
-
 const developerFuzzSchema = projectSchema.extend({
   functionSelector: z.string().min(1).optional(),
   goal: z.string().min(1).optional()

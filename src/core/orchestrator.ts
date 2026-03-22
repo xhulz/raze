@@ -10,6 +10,14 @@ import type {
   ValidatedAttackPlan
 } from "./types.js";
 
+const SOLIDITY_IDENTIFIER_REGEX = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
+
+function assertSolidityIdentifier(value: string, field: string): void {
+  if (!SOLIDITY_IDENTIFIER_REGEX.test(value)) {
+    throw new Error(`Attack plan field "${field}" contains an invalid Solidity identifier: "${value}"`);
+  }
+}
+
 interface FunctionSignature {
   name: string;
   paramTypes: string[];
@@ -166,6 +174,9 @@ export async function validateAttackPlan(
     throw new Error(`Could not resolve function signature for ${resolvedFunctions[0]}`);
   }
 
+  if (attackPlan.targetStateVariable) {
+    assertSolidityIdentifier(attackPlan.targetStateVariable, "targetStateVariable");
+  }
   const stateVariable = inferTargetStateVariable(analysis, attackPlan, primarySignature);
   if (attackPlan.targetStateVariable && !stateVariable) {
     throw new Error(`Attack plan references unknown state variable: ${attackPlan.targetStateVariable}`);

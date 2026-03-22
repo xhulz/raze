@@ -27,6 +27,8 @@ Maps task areas to exact source files.
 | `src/agents/reentrancy.agent.ts` | Reentrancy-specific attack logic |
 | `src/agents/accessControl.agent.ts` | Access control attack logic |
 | `src/agents/arithmetic.agent.ts` | Arithmetic vulnerability attack logic |
+| `src/agents/flashLoan.agent.ts` | Flash loan callback vulnerability logic |
+| `src/agents/priceManipulation.agent.ts` | AMM spot price manipulation logic |
 
 ## CLI interface
 

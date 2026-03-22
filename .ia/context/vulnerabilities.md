@@ -9,6 +9,8 @@ Vulnerability families that Raze supports for attack validation and proof scaffo
 - **Arithmetic** — overflow, underflow, precision loss (post-0.8 edge cases still relevant)
 - **tx.origin** — authentication using `tx.origin` instead of `msg.sender`
 - **Unchecked calls** — ignored return values from low-level calls
+- **Flash loan** — unguarded state mutations inside flash loan callbacks (IERC3156, Aave, dYdX, Balancer); assertionKind: `flash-loan-extraction`
+- **Price manipulation** — spot price reads from AMM pairs without TWAP or staleness protection (Uniswap V2/V3, Curve); assertionKind: `price-oracle-drift`
 
 ## How vulnerabilities are used
 

@@ -56,7 +56,7 @@ function buildAccessControlTest(plan: ValidatedAttackPlan): string {
   }
 
   return `    function test_${sanitizeIdentifier(plan.attackType)}_proof_scaffold() public {
-        ${plan.contractName} target = new ${plan.contractName}();
+        ${plan.contractName} target = new ${plan.contractName}(${plan.constructorArgs ?? ""});
         uint256 beforeValue = uint256(${observedExpr});
         vm.prank(address(0xDEAD));
         target.${functionName}(${args});
@@ -76,7 +76,7 @@ function buildArithmeticTest(plan: ValidatedAttackPlan): string {
   }
 
   return `    function test_${sanitizeIdentifier(plan.attackType)}_proof_scaffold() public {
-        ${plan.contractName} target = new ${plan.contractName}();
+        ${plan.contractName} target = new ${plan.contractName}(${plan.constructorArgs ?? ""});
         uint256 beforeValue = uint256(${observedExpr});
         target.${functionName}(${args});
         uint256 afterValue = uint256(${observedExpr});
@@ -90,7 +90,7 @@ function buildAccessControlRegressionTest(plan: ValidatedAttackPlan): string {
   const functionName = plan.resolvedFunctions[0];
   const args = buildFunctionCallArguments(plan);
   return `    function test_${sanitizeIdentifier(plan.attackType)}_regression() public {
-        ${plan.contractName} target = new ${plan.contractName}();
+        ${plan.contractName} target = new ${plan.contractName}(${plan.constructorArgs ?? ""});
         vm.prank(address(0xDEAD));
         vm.expectRevert();
         target.${functionName}(${args});
@@ -105,7 +105,7 @@ contract ${plan.contractName}RegressionTest {
     Vm private constant vm = Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
 
     function test_${sanitizeIdentifier(plan.attackType)}_regression() public {
-        ${plan.contractName} target = new ${plan.contractName}();
+        ${plan.contractName} target = new ${plan.contractName}(${plan.constructorArgs ?? ""});
         ${plan.contractName}ReentrancyAttacker attacker = new ${plan.contractName}ReentrancyAttacker(target);
         vm.deal(address(this), 1 ether);
         vm.deal(address(target), 2 ether);
@@ -119,6 +119,7 @@ contract ${plan.contractName}RegressionTest {
 
 function buildReentrancyTest(plan: ValidatedAttackPlan): string {
   const functionName = plan.resolvedFunctions[0];
+  const setupFn = plan.reentrancySetupFunction ?? "deposit";
   return `interface Vm {
     function deal(address who, uint256 newBalance) external;
 }
@@ -132,7 +133,7 @@ contract ${plan.contractName}ReentrancyAttacker {
     }
 
     function attack() external payable {
-        target.deposit{value: msg.value}();
+        target.${setupFn}{value: msg.value}();
         target.${functionName}();
     }
 
@@ -148,7 +149,7 @@ contract ${plan.contractName}${sanitizeIdentifier(plan.attackType)}Test {
     Vm private constant vm = Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
 
     function test_${sanitizeIdentifier(plan.attackType)}_proof_scaffold() public {
-        ${plan.contractName} target = new ${plan.contractName}();
+        ${plan.contractName} target = new ${plan.contractName}(${plan.constructorArgs ?? ""});
         ${plan.contractName}ReentrancyAttacker attacker = new ${plan.contractName}ReentrancyAttacker(target);
         vm.deal(address(this), 1 ether);
         vm.deal(address(target), 2 ether);
@@ -197,7 +198,7 @@ contract ${plan.contractName}${sanitizeIdentifier(plan.attackType)}Test {
     Vm private constant vm = Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
 
     function test_${sanitizeIdentifier(plan.attackType)}_proof_scaffold() public {
-        ${plan.contractName} target = new ${plan.contractName}();
+        ${plan.contractName} target = new ${plan.contractName}(${plan.constructorArgs ?? ""});
         ${plan.contractName}FlashLoanBorrower attacker = new ${plan.contractName}FlashLoanBorrower(target);
         vm.deal(address(target), 2 ether);
         ${beforeLine}
@@ -259,7 +260,7 @@ contract ${plan.contractName}${sanitizeIdentifier(plan.attackType)}Test {
     Vm private constant vm = Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
 
     function test_${sanitizeIdentifier(plan.attackType)}_proof_scaffold() public {
-        ${plan.contractName} target = new ${plan.contractName}();
+        ${plan.contractName} target = new ${plan.contractName}(${plan.constructorArgs ?? ""});
         MockFlashLender lender = new MockFlashLender();
         ${plan.contractName}FlashLoanAttacker attacker = new ${plan.contractName}FlashLoanAttacker(target, lender);
         vm.deal(address(lender), 10 ether);
@@ -300,7 +301,7 @@ function buildPriceManipulationTest(plan: ValidatedAttackPlan): string {
 contract ${plan.contractName}${sanitizeIdentifier(plan.attackType)}Test {
     function test_${sanitizeIdentifier(plan.attackType)}_proof_scaffold() public {
         MockAMMPair pair = new MockAMMPair();
-        ${plan.contractName} target = new ${plan.contractName}();
+        ${plan.contractName} target = new ${plan.contractName}(${plan.constructorArgs ?? ""});
         // Observe price at fair reserves
         ${observeBefore}
         // Skew reserves to simulate manipulation

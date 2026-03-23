@@ -59,6 +59,8 @@ export interface ValidatedAttackPlan extends AttackPlanInput {
   targetStateVariableKeyType?: string;
   normalizedSampleArguments: Array<string | number | boolean>;
   flashLoanRole?: "lender" | "receiver";
+  reentrancySetupFunction?: string;
+  constructorArgs?: string;
 }
 
 export interface GeneratedTest {

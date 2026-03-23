@@ -31,6 +31,7 @@ interface PublicStateVariable {
 
 const FUNCTION_SIGNATURE_REGEX = /function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)/g;
 const PUBLIC_STATE_REGEX = /(mapping\s*\(\s*([^=]+)=>\s*([^)]+)\)|[A-Za-z0-9_]+)\s+public\s+([A-Za-z_][A-Za-z0-9_]*)/g;
+const CONSTRUCTOR_REGEX = /constructor\s*\(([^)]*)\)/;
 
 function parseFunctionSignatures(source: string): FunctionSignature[] {
   return [...source.matchAll(FUNCTION_SIGNATURE_REGEX)].map((match) => {
@@ -99,6 +100,22 @@ function inferTargetStateVariable(analysis: ContractAnalysis, attackPlan: Attack
   return undefined;
 }
 
+function parseConstructorArgs(source: string): string {
+  const match = source.match(CONSTRUCTOR_REGEX);
+  if (!match || !match[1].trim()) return "";
+  const params = match[1].trim().split(",").map((param) => {
+    const tokens = param.trim().split(/\s+/);
+    const type = tokens[0];
+    if (type === "address") return "address(0)";
+    if (type === "bool") return "false";
+    if (type.startsWith("uint") || type.startsWith("int")) return "0";
+    if (type === "string") return '""';
+    if (type === "bytes") return '"0x"';
+    return "0";
+  });
+  return params.join(", ");
+}
+
 function inferSampleArguments(signature: FunctionSignature): Array<string | number | boolean> {
   return signature.paramTypes.map((type) => {
     if (type === "address") {
@@ -142,6 +159,13 @@ export async function inspectProject(projectRoot: string): Promise<ProjectInspec
     dependencyGraph: graph,
     crossContractFindings
   };
+}
+
+const DEPOSIT_PATTERN_PRIORITY = ["deposit", "stake", "add", "supply", "provide", "fund", "invest"];
+
+function inferReentrancySetupFunction(functions: string[], attackFunctions: string[]): string {
+  const candidates = functions.filter((fn) => !attackFunctions.includes(fn));
+  return DEPOSIT_PATTERN_PRIORITY.find((name) => candidates.includes(name)) ?? "deposit";
 }
 
 function inferFlashLoanRole(functions: string[]): "lender" | "receiver" {
@@ -190,6 +214,13 @@ export async function validateAttackPlan(
       ? inferFlashLoanRole(analysis.functions)
       : undefined;
 
+  const reentrancySetupFunction =
+    attackPlan.attackType === "reentrancy"
+      ? inferReentrancySetupFunction(analysis.functions, resolvedFunctions)
+      : undefined;
+
+  const constructorArgs = parseConstructorArgs(analysis.source);
+
   return {
     analysis,
     validatedPlan: {
@@ -202,7 +233,9 @@ export async function validateAttackPlan(
       targetStateVariableType: stateVariable?.type,
       targetStateVariableKeyType: stateVariable?.keyType?.trim(),
       normalizedSampleArguments,
-      flashLoanRole
+      flashLoanRole,
+      reentrancySetupFunction,
+      constructorArgs
     }
   };
 }

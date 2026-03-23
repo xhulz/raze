@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/raze-black.png" alt="Raze" width="300" />
+</p>
+
 # raze
 
 Raze is an open-source, AI-orchestrated smart contract security tool for Foundry projects.

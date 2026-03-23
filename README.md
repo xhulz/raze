@@ -26,6 +26,11 @@ No API key is required. No Docker is used.
 
 ![Raze demo — MCP flow detecting reentrancy in a StakingPool contract](assets/raze-demo.gif)
 
+## Prerequisites
+
+- [Node.js](https://nodejs.org/) >= 20
+- [Foundry](https://book.getfoundry.sh/getting-started/installation) (forge)
+
 ## Install
 
 ```bash

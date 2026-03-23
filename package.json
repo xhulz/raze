@@ -1,6 +1,6 @@
 {
   "name": "raze-security",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "MCP-first smart contract attack engine for AI developer tools.",
   "type": "module",
   "bin": {

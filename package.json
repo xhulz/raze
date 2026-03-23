@@ -1,10 +1,10 @@
 {
-  "name": "raze",
+  "name": "raze-security",
   "version": "0.1.0",
   "description": "MCP-first smart contract attack engine for AI developer tools.",
   "type": "module",
   "bin": {
-    "raze": "./dist/src/interfaces/cli/index.js"
+    "raze": "dist/src/interfaces/cli/index.js"
   },
   "main": "./dist/src/index.js",
   "exports": {
@@ -32,7 +32,7 @@
     "foundry",
     "fuzzing"
   ],
-  "author": "",
+  "author": "Marcos Schulz",
   "license": "MIT",
   "engines": {
     "node": ">=20"

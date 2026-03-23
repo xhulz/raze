@@ -21,11 +21,6 @@ function resolvePackageRoot(): string {
   return path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
 }
 
-async function copyTemplateTree(sourceRoot: string, targetRoot: string): Promise<void> {
-  await fs.mkdir(path.dirname(targetRoot), { recursive: true });
-  await fs.cp(sourceRoot, targetRoot, { recursive: true });
-}
-
 function buildMcpEntry(projectRoot: string): { command: string; args: string[] } {
   void projectRoot;
   const packageRoot = resolvePackageRoot();
@@ -89,7 +84,6 @@ async function mergeMcpConfig(
 export async function runInitCommand(projectRoot: string): Promise<void> {
   const env = await detectEnvironment();
   await ensureFoundryProject(projectRoot);
-  await copyTemplateTree(path.join(resolvePackageRoot(), "templates", "raze"), path.join(projectRoot, ".raze"));
   await fs.mkdir(path.join(projectRoot, ".raze", "reports"), { recursive: true });
 
   const mcpEntry = buildMcpEntry(projectRoot);

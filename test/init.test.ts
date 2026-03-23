@@ -53,10 +53,6 @@ test("runInitCommand writes .raze scaffolding and merges MCP config with backup"
 
   try {
     await runInitCommand(tmpRoot);
-    const agents = await fs.readFile(path.join(tmpRoot, ".raze", ".ia", "agents.md"), "utf8");
-    const rules = await fs.readFile(path.join(tmpRoot, ".raze", ".ia", "rules.md"), "utf8");
-    const resultInterpretation = await fs.readFile(path.join(tmpRoot, ".raze", ".ia", "result-interpretation.md"), "utf8");
-    const vulnerabilities = await fs.readFile(path.join(tmpRoot, ".raze", ".ia", "context", "vulnerabilities.md"), "utf8");
     const merged = JSON.parse(await fs.readFile(cursorConfig, "utf8")) as {
       mcpServers: Record<string, { command: string; args: string[] }>;
     };
@@ -68,28 +64,7 @@ test("runInitCommand writes .raze scaffolding and merges MCP config with backup"
 
     await assert.rejects(fs.access(path.join(tmpRoot, ".codexrc")));
     await fs.access(path.join(tmpRoot, ".raze", "reports"));
-    assert.match(agents, /Planner -> Attacker -> Tester -> Runner -> Reporter/);
-    assert.match(agents, /assessment\.confirmationStatus/);
-    assert.match(agents, /scaffold executed, but exploit not fully confirmed/);
-    assert.match(agents, /do not invent stronger wording than it allows/);
-    assert.match(agents, /final issue status in natural language/);
-    assert.match(agents, /assessment\.decision/);
-    assert.match(agents, /Decision: fix this issue now\./);
-    assert.match(agents, /Use `raze_attack` for one authored attack plan/);
-    assert.match(agents, /`raze_run_attack_suite` requires `attackPlans`/);
-    assert.match(rules, /Always generate compileable Solidity/);
-    assert.match(rules, /Derive final severity and confirmation wording from `assessment\.confirmationStatus`/);
-    assert.match(rules, /Never equate `forgeRun\.ok === true` with "safe" or "confirmed exploit" by itself/);
-    assert.match(rules, /If a free-form summary conflicts with `assessment\.confirmationStatus`, the summary is wrong/);
-    assert.match(resultInterpretation, /Use `assessment\.confirmationStatus` as the source of truth/);
-    assert.match(resultInterpretation, /Use `assessment\.decision` and `assessment\.decisionReason` as the source of truth/);
-    assert.match(resultInterpretation, /`fix-now`/);
-    assert.match(resultInterpretation, /`executed-scaffold`/);
-    assert.match(resultInterpretation, /`confirmed-by-execution`/);
-    assert.match(resultInterpretation, /does not mean the contract is safe/);
-    assert.match(resultInterpretation, /Prefer: "Final issue status: confirmed by execution\."/);
-    assert.match(resultInterpretation, /Avoid: "assessment\.confirmationStatus: confirmed-by-execution"/);
-    assert.match(vulnerabilities, /reentrancy/);
+    await assert.rejects(fs.access(path.join(tmpRoot, ".raze", ".ia")));
     assert.equal(merged.mcpServers.existing.command, "node");
     assert.equal(merged.mcpServers.raze.command, "node");
     assert.match(merged.mcpServers.raze.args[0], /dist\/src\/interfaces\/mcp\/server\.js$/);

@@ -24,6 +24,8 @@ Raze helps turn smart contract security reasoning into validated, executable pro
 
 No API key is required. No Docker is used.
 
+![Raze demo — MCP flow detecting reentrancy in a StakingPool contract](assets/raze-demo.gif)
+
 ## Install
 
 ```bash

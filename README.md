@@ -37,13 +37,18 @@ No API key is required. No Docker is used.
 
 ## Install
 
+**Use in your Foundry project:**
+
 ```bash
 npm install raze-security
+npx raze init
 ```
 
-For local development in this repository:
+**Contributing to Raze itself:**
 
 ```bash
+git clone https://github.com/xhulz/raze.git
+cd raze
 npm install
 npm run build
 ```

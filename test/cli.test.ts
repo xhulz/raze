@@ -66,7 +66,7 @@ test("runDoctorCommand prints version, build path, runtime initialization, and c
     await runDoctorCommand(tmpRoot);
   });
 
-  assert.match(output, /Raze\s+0\.1\.0/);
+  assert.match(output, /Raze\s+0\.1\.\d+/);
   assert.match(output, /Build output\s+ready/);
   assert.match(output, /Build path\s+.*dist\/src\/interfaces\/mcp\/server\.js/);
   assert.match(output, /Runtime context\s+\.raze initialized/);

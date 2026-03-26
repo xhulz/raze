@@ -13,6 +13,12 @@ const AGENTS: Record<string, AttackAgent> = {
   "price-manipulation": new PriceManipulationAgent()
 };
 
+/**
+ * Runs all recommended deterministic attack agents against a contract analysis and collects findings.
+ *
+ * @param analysis - Contract analysis containing recommended agents, source, and risk signals.
+ * @returns Array of attack findings produced by the executed agents.
+ */
 export function runAttackAgents(analysis: ContractAnalysis): AttackFinding[] {
   const findings: AttackFinding[] = [];
 

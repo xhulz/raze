@@ -1,3 +1,4 @@
+export * from "./core/types.js";
 export * from "./core/pipeline.js";
 export * from "./core/planner.js";
 export * from "./core/attacker.js";
@@ -9,3 +10,5 @@ export * from "./core/tester.js";
 export * from "./core/runner.js";
 export * from "./core/reporter.js";
 export * from "./core/presentation.js";
+export * from "./core/assessment.js";
+export * from "./core/verifier.js";

@@ -15,6 +15,13 @@ function parseForgeSummary(stdout: string): ForgeRunResult["summary"] {
   };
 }
 
+/**
+ * Executes Forge test commands against the project with configurable test and path matching.
+ *
+ * @param projectRoot - Absolute path to the Foundry project root.
+ * @param options - Optional flags for offline mode, test name match pattern, and file path match pattern.
+ * @returns Forge run result including exit code, stdout/stderr, and parsed test summary.
+ */
 export async function runForgeTests(projectRoot: string, options: { offline?: boolean; matchTest?: string; matchPath?: string } = {}): Promise<ForgeRunResult> {
   const matchTest = options.matchTest ?? "proof_scaffold";
   const args = ["test", "--match-test", matchTest, ...(options.matchPath ? ["--match-path", options.matchPath] : []), ...(options.offline ? ["--offline"] : []), "--root", projectRoot];

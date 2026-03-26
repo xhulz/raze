@@ -1,4 +1,11 @@
 import { analyzeAllContracts, analyzeContract } from "./planner.js";
+import {
+  parseFunctionSignatures,
+  parsePublicStateVariables,
+  parseConstructorArgs,
+  type FunctionSignature,
+  type PublicStateVariable
+} from "./solidity.js";
 import type {
   AttackFinding,
   AttackPlanInput,
@@ -16,50 +23,6 @@ function assertSolidityIdentifier(value: string, field: string): void {
   if (!SOLIDITY_IDENTIFIER_REGEX.test(value)) {
     throw new Error(`Attack plan field "${field}" contains an invalid Solidity identifier: "${value}"`);
   }
-}
-
-interface FunctionSignature {
-  name: string;
-  paramTypes: string[];
-}
-
-interface PublicStateVariable {
-  name: string;
-  type: string;
-  keyType?: string;
-}
-
-const FUNCTION_SIGNATURE_REGEX = /function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)/g;
-const PUBLIC_STATE_REGEX = /(mapping\s*\(\s*([^=]+)=>\s*([^)]+)\)|[A-Za-z0-9_]+)\s+public\s+([A-Za-z_][A-Za-z0-9_]*)/g;
-const CONSTRUCTOR_REGEX = /constructor\s*\(([^)]*)\)/;
-
-function parseFunctionSignatures(source: string): FunctionSignature[] {
-  return [...source.matchAll(FUNCTION_SIGNATURE_REGEX)].map((match) => {
-    const rawParams = match[2].trim();
-    const paramTypes =
-      rawParams.length === 0
-        ? []
-        : rawParams.split(",").map((param) => {
-            const tokens = param.trim().split(/\s+/);
-            return tokens[0];
-          });
-    return {
-      name: match[1],
-      paramTypes
-    };
-  });
-}
-
-function parsePublicStateVariables(source: string): PublicStateVariable[] {
-  return [...source.matchAll(PUBLIC_STATE_REGEX)].map((match) => {
-    const fullType = match[1].trim();
-    const keyType = match[2]?.trim();
-    return {
-      name: match[4],
-      type: fullType,
-      keyType
-    };
-  });
 }
 
 function inferTargetStateVariable(analysis: ContractAnalysis, attackPlan: AttackPlanInput, signature: FunctionSignature): PublicStateVariable | undefined {
@@ -100,22 +63,6 @@ function inferTargetStateVariable(analysis: ContractAnalysis, attackPlan: Attack
   return undefined;
 }
 
-function parseConstructorArgs(source: string): string {
-  const match = source.match(CONSTRUCTOR_REGEX);
-  if (!match || !match[1].trim()) return "";
-  const params = match[1].trim().split(",").map((param) => {
-    const tokens = param.trim().split(/\s+/);
-    const type = tokens[0];
-    if (type === "address") return "address(0)";
-    if (type === "bool") return "false";
-    if (type.startsWith("uint") || type.startsWith("int")) return "0";
-    if (type === "string") return '""';
-    if (type === "bytes") return '"0x"';
-    return "0";
-  });
-  return params.join(", ");
-}
-
 function inferSampleArguments(signature: FunctionSignature): Array<string | number | boolean> {
   return signature.paramTypes.map((type) => {
     if (type === "address") {
@@ -141,6 +88,12 @@ function toContractSelector(input: AttackPipelineInput): string | undefined {
   return input.attackPlan?.contractName ?? input.contractSelector;
 }
 
+/**
+ * Inspects an entire Foundry project, analyzing all contracts and deriving cross-contract findings.
+ *
+ * @param projectRoot - Absolute path to the Foundry project root.
+ * @returns Full project inspection including per-contract metadata, dependency graph, and cross-contract findings.
+ */
 export async function inspectProject(projectRoot: string): Promise<ProjectInspection> {
   const { analyses, graph } = await analyzeAllContracts(projectRoot);
   const crossContractFindings = deriveCrossContractFindings(analyses, graph);
@@ -176,6 +129,14 @@ function inferFlashLoanRole(functions: string[]): "lender" | "receiver" {
   return "receiver"; // default for backward compatibility
 }
 
+/**
+ * Validates an attack plan against the real contract surface, resolving functions, state variables, and sample arguments.
+ *
+ * @param input - Pipeline input with project root and optional contract selector.
+ * @param attackPlan - The attack plan to validate against actual contract symbols.
+ * @param planSource - Origin of the plan, either "ai-authored" or "heuristic-fallback".
+ * @returns The contract analysis and the fully validated attack plan with resolved symbols.
+ */
 export async function validateAttackPlan(
   input: AttackPipelineInput,
   attackPlan: AttackPlanInput,
@@ -240,6 +201,13 @@ export async function validateAttackPlan(
   };
 }
 
+/**
+ * Derives heuristic-based fallback attack plans from contract analysis findings when no AI-authored plan is provided.
+ *
+ * @param analysis - The analyzed contract metadata and source.
+ * @param findings - Attack findings produced by the heuristic agents.
+ * @returns Array of attack plan inputs, one per actionable finding.
+ */
 export async function deriveFallbackPlans(analysis: ContractAnalysis, findings: AttackFinding[]): Promise<AttackPlanInput[]> {
   const signatures = parseFunctionSignatures(analysis.source);
   const plans: AttackPlanInput[] = [];
@@ -332,6 +300,13 @@ export async function deriveFallbackPlans(analysis: ContractAnalysis, findings: 
   return plans;
 }
 
+/**
+ * Derives cross-contract risk findings by examining the call surface for unprotected price reads and flash loan flows.
+ *
+ * @param analyses - Array of per-contract analysis results.
+ * @param graph - The project-wide dependency graph with call surface data.
+ * @returns Array of cross-contract findings describing inter-contract risk signals.
+ */
 export function deriveCrossContractFindings(analyses: ContractAnalysis[], graph: ContractDependencyGraph): CrossContractFinding[] {
   const pathToAnalysis = new Map(analyses.map((a) => [a.contractPath, a]));
   const findings: CrossContractFinding[] = [];

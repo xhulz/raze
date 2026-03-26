@@ -1,50 +1,14 @@
 import path from "node:path";
 import { promises as fs } from "node:fs";
 import { analyzeContract } from "./planner.js";
+import {
+  parsePublicFunctionSignatures,
+  parsePublicStateVariables,
+  sanitizeIdentifier,
+  type FunctionSignature,
+  type PublicStateVariable
+} from "./solidity.js";
 import type { AttackPipelineInput, DeveloperFuzzPlan, DeveloperFuzzResult, DeveloperGeneratedTest } from "./types.js";
-
-interface FunctionSignature {
-  name: string;
-  paramTypes: string[];
-}
-
-interface PublicStateVariable {
-  name: string;
-  type: string;
-  keyType?: string;
-}
-
-const FUNCTION_SIGNATURE_REGEX = /function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)\s*(?:external|public)/g;
-const PUBLIC_STATE_REGEX = /(mapping\s*\(\s*([^=]+)=>\s*([^)]+)\)|[A-Za-z0-9_]+)\s+public\s+([A-Za-z_][A-Za-z0-9_]*)/g;
-
-function parseFunctionSignatures(source: string): FunctionSignature[] {
-  return [...source.matchAll(FUNCTION_SIGNATURE_REGEX)].map((match) => {
-    const rawParams = match[2].trim();
-    const paramTypes =
-      rawParams.length === 0
-        ? []
-        : rawParams.split(",").map((param) => {
-            const tokens = param.trim().split(/\s+/);
-            return tokens[0];
-          });
-    return {
-      name: match[1],
-      paramTypes
-    };
-  });
-}
-
-function parsePublicStateVariables(source: string): PublicStateVariable[] {
-  return [...source.matchAll(PUBLIC_STATE_REGEX)].map((match) => ({
-    name: match[4],
-    type: match[1].trim(),
-    keyType: match[2]?.trim()
-  }));
-}
-
-function sanitizeIdentifier(value: string): string {
-  return value.replace(/[^A-Za-z0-9_]/g, "_");
-}
 
 function chooseObservableState(source: string, signature: FunctionSignature): PublicStateVariable | undefined {
   const variables = parsePublicStateVariables(source);
@@ -183,6 +147,12 @@ function buildTestFunction(contractName: string, signature: FunctionSignature, s
   return null;
 }
 
+/**
+ * Generates developer-oriented fuzz test files for public functions of a target contract.
+ *
+ * @param input - Object containing the project root, optional contract/function selectors, goal, and execution context.
+ * @returns Result including analysis, generated fuzz test plans, test files, and any skipped functions.
+ */
 export async function generateDeveloperFuzzTests(
   input: Pick<AttackPipelineInput, "projectRoot" | "contractSelector"> & {
     functionSelector?: string;
@@ -195,7 +165,7 @@ export async function generateDeveloperFuzzTests(
     contractSelector: input.contractSelector,
     executionContext: input.executionContext ?? "mcp"
   });
-  const signatures = parseFunctionSignatures(analysis.source);
+  const signatures = parsePublicFunctionSignatures(analysis.source);
   const selectedSignatures = input.functionSelector
     ? signatures.filter((signature) => signature.name === input.functionSelector)
     : signatures;

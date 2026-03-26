@@ -5,6 +5,12 @@ import type { AttackPipelineInput, AttackType, ContractAnalysis, ContractDepende
 const CONTRACT_REGEX = /contract\s+([A-Za-z_][A-Za-z0-9_]*)/g;
 const FUNCTION_REGEX = /function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(/g;
 
+/**
+ * Validates that the given directory contains a Foundry project by checking for foundry.toml.
+ *
+ * @param projectRoot - Absolute path to the project root directory.
+ * @returns Resolves when the project is confirmed; throws if foundry.toml is missing.
+ */
 export async function ensureFoundryProject(projectRoot: string): Promise<void> {
   const foundryToml = path.join(projectRoot, "foundry.toml");
   try {
@@ -14,6 +20,12 @@ export async function ensureFoundryProject(projectRoot: string): Promise<void> {
   }
 }
 
+/**
+ * Recursively discovers all Solidity contract files under the project's src directory.
+ *
+ * @param projectRoot - Absolute path to the Foundry project root.
+ * @returns Sorted array of absolute paths to discovered .sol files.
+ */
 export async function discoverContracts(projectRoot: string): Promise<string[]> {
   await ensureFoundryProject(projectRoot);
   const srcDir = path.join(projectRoot, "src");
@@ -36,6 +48,13 @@ export async function discoverContracts(projectRoot: string): Promise<string[]> 
   return contracts.sort();
 }
 
+/**
+ * Selects a single contract file by name or partial path, or returns the first discovered contract when no selector is given.
+ *
+ * @param projectRoot - Absolute path to the Foundry project root.
+ * @param selector - Optional contract name or partial path to match against discovered contracts.
+ * @returns Absolute path to the matched contract file.
+ */
 export async function selectContract(projectRoot: string, selector?: string): Promise<string> {
   const contracts = await discoverContracts(projectRoot);
   if (contracts.length === 0) {
@@ -208,6 +227,12 @@ function extractImportedPaths(source: string, contractPath: string): string[] {
   return resolved;
 }
 
+/**
+ * Performs static analysis on a single contract, extracting functions, risk signals, and recommended attack agents.
+ *
+ * @param input - Pipeline input containing the project root and optional contract selector.
+ * @returns Analysis result with contract metadata, functions, risk signals, and recommended agents.
+ */
 export async function analyzeContract(input: AttackPipelineInput): Promise<ContractAnalysis> {
   const contractPath = await selectContract(input.projectRoot, input.contractSelector);
   const source = await fs.readFile(contractPath, "utf8");
@@ -247,6 +272,12 @@ async function analyzeContractByPath(contractPath: string, projectRoot: string):
   };
 }
 
+/**
+ * Builds an import and call-surface dependency graph from a set of contract analyses.
+ *
+ * @param analyses - Array of contract analysis results to derive edges from.
+ * @returns Dependency graph with nodes, import edges, and cross-contract call surface entries.
+ */
 export function buildDependencyGraph(analyses: ContractAnalysis[]): ContractDependencyGraph {
   const nodes = analyses.map((a) => a.contractPath);
   const pathToAnalysis = new Map(analyses.map((a) => [a.contractPath, a]));
@@ -298,6 +329,12 @@ export function buildDependencyGraph(analyses: ContractAnalysis[]): ContractDepe
   return { nodes, edges, callSurface };
 }
 
+/**
+ * Analyzes every Solidity contract in the project and builds a cross-contract dependency graph.
+ *
+ * @param projectRoot - Absolute path to the Foundry project root.
+ * @returns Object containing the per-contract analyses and the assembled dependency graph.
+ */
 export async function analyzeAllContracts(projectRoot: string): Promise<{ analyses: ContractAnalysis[]; graph: ContractDependencyGraph }> {
   const paths = await discoverContracts(projectRoot);
   const analyses = await Promise.all(paths.map((contractPath) => analyzeContractByPath(contractPath, projectRoot)));

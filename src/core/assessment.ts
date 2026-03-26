@@ -21,6 +21,12 @@ function canExecutionConfirm(result: AssessableResult): boolean {
   );
 }
 
+/**
+ * Builds a structured attack assessment from findings, plans, tests, and optional Forge/cross-contract data.
+ *
+ * @param result - Assessable input containing findings, validated plans, generated tests, and optional execution results.
+ * @returns Assessment with confirmation status, decision, reasoning, and interpretation.
+ */
 export function buildAttackAssessment(result: AssessableResult): AttackAssessment {
   const findingStatus = result.findings.length > 0 ? "heuristic-findings" : "no-findings";
   const testStatus = result.generatedTests.length > 0 ? "proof-scaffolds-generated" : "no-tests";

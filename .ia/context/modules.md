@@ -2,26 +2,40 @@
 
 ## `src/core/`
 
-The product pipeline. Each file maps to one stage of the Planner -> Attacker -> Tester -> Runner -> Reporter architecture. Changes here require reading `memory/invariants.md` first. Stage order must be preserved.
+The product pipeline. Stage order must be preserved.
 
-Key: `types.ts` is the shared type boundary — changes here propagate everywhere.
+- `types.ts` — shared type boundary; changes propagate everywhere
+- `solidity.ts` — shared Solidity parsing (signatures, state vars, constructor args, identifier sanitization)
+- `planner.ts` — contract discovery, analysis, dependency graph
+- `orchestrator.ts` — attack plan validation, symbol resolution, cross-contract findings
+- `attacker.ts` — dispatches heuristic agents per vulnerability family
+- `assessment.ts` — decision engine mapping findings + execution to verdict
+- `tester.ts` — deterministic proof scaffold generation (proof + regression tests)
+- `runner.ts` — Forge execution wrapper
+- `reporter.ts` — Markdown report generation
+- `verifier.ts` — fix verification loop (proof fail + regression pass = fix verified)
+- `presentation.ts` — formatting helpers for verdicts and summaries
+- `hardening.ts` — remediation suggestions per finding type
+- `pipeline.ts` — single-plan orchestration (heuristic fallback path)
+- `attackSuite.ts` — multi-plan orchestration
+- `developerFuzz.ts` — broad developer fuzz test generation
 
 ## `src/agents/`
 
-Attack-specific logic, one file per vulnerability family. Each agent encapsulates the reasoning and materialization logic for its vulnerability type. New vulnerability families get a new agent file here.
+One file per vulnerability family. Each agent encapsulates heuristic detection logic.
 
 ## `src/interfaces/cli/`
 
-Thin CLI surface over the core pipeline. Commands must not contain business logic — they invoke core and format output. Adding a command: register in `index.ts`, implement in a dedicated file.
+Thin CLI surface. Commands invoke core and format output. Register in `index.ts`, implement in a dedicated file.
 
 ## `src/interfaces/mcp/`
 
-Thin MCP surface over the core pipeline. `tools.ts` defines tool schemas and handlers. `server.ts` handles transport. All tool outputs must be JSON-serializable — checked in `memory/invariants.md`.
+MCP surface over core pipeline. `schemas.ts` defines Zod schemas. `tools.ts` defines tool handlers. `server.ts` handles transport. All outputs must be JSON-serializable.
 
 ## `src/utils/`
 
-Supporting utilities with no product logic. `detect.ts` and `exec.ts` are the most frequently touched. Changes here should be backward-compatible with both CLI and MCP.
+Supporting utilities with no product logic. `detect.ts` and `exec.ts` are most frequently touched.
 
 ## `templates/raze/`
 
-Scaffold files copied into target Foundry projects during `raze init`. Contains a `.ia/` system for the target project's AI context. Changes here affect what gets scaffolded, not Raze's own behavior.
+Scaffold files for `raze init`. No `.ia/` injection — context reaches the AI through MCP tool responses only.

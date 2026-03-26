@@ -4,6 +4,12 @@ import type { AttackPipelineResult } from "./types.js";
 import { deriveSeverity, describeVerdictSummary, interpretForgeResult } from "./presentation.js";
 import { suggestionsFromFindings } from "./hardening.js";
 
+/**
+ * Writes a Markdown security report summarizing findings, verdicts, proof scaffolds, and next steps.
+ *
+ * @param result - Pipeline result data excluding the report path (which this function generates).
+ * @returns Absolute path to the written report file.
+ */
 export async function writeReport(result: Omit<AttackPipelineResult, "reportPath">): Promise<string> {
   const reportsDir = path.join(result.projectRoot, ".raze", "reports");
   await fs.mkdir(reportsDir, { recursive: true });

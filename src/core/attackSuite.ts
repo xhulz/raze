@@ -166,6 +166,12 @@ function finalizePlanResults(planResults: AttackSuitePlanResult[], forgeRun: Att
   });
 }
 
+/**
+ * Runs a multi-plan attack suite against a contract, combining AI-authored or heuristic-fallback plans with optional Forge execution.
+ *
+ * @param input - Suite input containing project root, contract selector, optional attack plans, and execution flags.
+ * @returns Suite result with per-plan outcomes, family summaries, optional Forge run, and report path.
+ */
 export async function runAttackSuite(
   input: Pick<AttackPipelineInput, "projectRoot" | "contractSelector" | "offline" | "runForge" | "executionContext"> & {
     attackPlans?: AttackPlanInput[];

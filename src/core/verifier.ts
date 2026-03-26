@@ -3,6 +3,13 @@ import { promises as fs } from "node:fs";
 import { runForgeTests } from "./runner.js";
 import type { ForgeRunResult, VerifyContractResult, VerifyResult } from "./types.js";
 
+/**
+ * Interprets proof and regression Forge runs to determine whether a fix has been verified.
+ *
+ * @param proofRun - Forge run result for the proof scaffold tests (expected to fail after a fix).
+ * @param regressionRun - Forge run result for the regression tests (expected to pass after a fix).
+ * @returns Object with a verdict ("fix-verified", "fix-incomplete", or "error") and a human-readable reason.
+ */
 export function interpretVerifyResults(
   proofRun: ForgeRunResult,
   regressionRun: ForgeRunResult
@@ -100,6 +107,13 @@ _Verified at ${new Date().toISOString()}_
 `;
 }
 
+/**
+ * Verifies applied fixes by running proof scaffolds and regression tests, then writing a verification report.
+ *
+ * @param projectRoot - Absolute path to the Foundry project root.
+ * @param options - Optional filters for contract name and offline mode.
+ * @returns Verification result with per-contract verdicts, overall verdict, and report path.
+ */
 export async function verifyFixes(
   projectRoot: string,
   options: { contract?: string; offline?: boolean } = {}

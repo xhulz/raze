@@ -1,10 +1,7 @@
 import path from "node:path";
 import { promises as fs } from "node:fs";
+import { sanitizeIdentifier } from "./solidity.js";
 import type { GeneratedTest, ValidatedAttackPlan } from "./types.js";
-
-function sanitizeIdentifier(value: string): string {
-  return value.replace(/[^A-Za-z0-9_]/g, "_");
-}
 
 function solidityLiteral(type: string | undefined, value: string | number | boolean): string {
   if (!type) {
@@ -373,6 +370,13 @@ ${buildArithmeticTest(plan)}}
 `;
 }
 
+/**
+ * Generates Solidity proof-of-concept test scaffold files for each validated attack plan.
+ *
+ * @param projectRoot - Absolute path to the Foundry project root.
+ * @param validatedPlans - Array of validated attack plans to generate test scaffolds for.
+ * @returns Array of generated test metadata including file paths and source content.
+ */
 export async function generateProofScaffolds(projectRoot: string, validatedPlans: ValidatedAttackPlan[]): Promise<GeneratedTest[]> {
   const testDir = path.join(projectRoot, "test", "raze");
   await fs.mkdir(testDir, { recursive: true });

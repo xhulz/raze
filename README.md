@@ -62,6 +62,58 @@ This repository also contains an internal `.ia/` directory used to help Codex, C
 - it defines routing, retrieval, memory, and specialized agent instructions for development work
 - it is separate from the runtime context that `raze init` generates for user projects
 
+## How it works
+
+```text
+┌─────────────────────────────────────────────────────────┐
+│                    YOUR AI ASSISTANT                    │
+│            (Cursor, Claude, Codex, etc.)                │
+│                                                         │
+│  "Analyze this contract for reentrancy vulnerabilities" │
+└───────────────────────┬─────────────────────────────────┘
+                        │ MCP
+                        ▼
+┌─────────────────────────────────────────────────────────┐
+│                        RAZE                             │
+│                                                         │
+│  1. Inspect    raze_inspect_project                     │
+│     ↓          Discover contracts, functions, signals   │
+│                                                         │
+│  2. Analyze    raze_analyze_contract                    │
+│     ↓          Detect risk patterns heuristically       │
+│                                                         │
+│  3. Attack     raze_attack                              │
+│     ↓          Validate AI hypothesis against real      │
+│                symbols, generate proof scaffold          │
+│                                                         │
+│  4. Verify     raze_verify_fix                          │
+│                Run proof + regression to confirm fix     │
+└───────────────────────┬─────────────────────────────────┘
+                        │
+                        ▼
+┌─────────────────────────────────────────────────────────┐
+│                      FOUNDRY                            │
+│                                                         │
+│  forge test — deterministic, on-chain execution         │
+│  No LLM involved. No hallucination possible.            │
+└─────────────────────────────────────────────────────────┘
+```
+
+**The lifecycle:**
+
+```text
+raze fuzz → finds bug → generates scaffold (proof + regression)
+       ↓
+developer applies fix
+       ↓
+raze verify → runs both tests → confirms fix is effective
+```
+
+| Test | Before fix | After fix |
+|---|---|---|
+| `proof_scaffold` | PASS (bug exists) | FAIL (bug gone) |
+| `regression` | FAIL (fix absent) | PASS (fix holds) |
+
 ## Bootstrap
 
 Run `init` inside a Foundry project:
@@ -93,10 +145,9 @@ You can now ask:
 raze init [path]
 raze doctor [path]
 raze fuzz [path] [--contract <path-or-name>] [--run]
+raze verify [path] [--contract <name>]
 raze dev-fuzz [path] [--contract <path-or-name>] [--function <name>]
 ```
-
-`raze fuzz` is the fallback mode when the tool is not being called over MCP. It keeps the heuristic-first path available for local and CI usage.
 
 Quick examples:
 
@@ -104,17 +155,16 @@ Quick examples:
 raze init
 raze doctor
 raze fuzz . --contract Counter --run --offline
+raze verify . --contract Counter
 raze dev-fuzz . --contract Counter
 raze dev-fuzz . --contract Counter --function mint
 ```
 
-CLI usage guidance:
-
 - `raze init` bootstraps `.raze/` and editor MCP configuration.
-- `raze doctor` checks the local Raze version, Foundry, MCP config paths, build output, and whether `.raze/.ia` is initialized in the target project.
-- `raze fuzz` is the local fallback path when you want Raze to derive heuristic attack plans outside MCP.
-- `raze dev-fuzz` is the local developer workflow for generating broad deterministic Foundry fuzz tests per function.
-- ASCII branding is intentionally deferred until after this functional v1 closeout.
+- `raze doctor` checks Raze version, Foundry, MCP config, build output, and `.raze` status.
+- `raze fuzz` derives heuristic attack plans and generates proof scaffolds.
+- `raze verify` runs proof + regression scaffolds to confirm a fix is effective. Exit code 1 if incomplete.
+- `raze dev-fuzz` generates broad deterministic Foundry fuzz tests per function.
 
 ## CI/CD
 
@@ -151,37 +201,45 @@ jobs:
       - name: Run security scan
         run: raze fuzz . --run --offline
 
-      - name: Upload report
+      - name: Verify fixes
+        run: raze verify . --offline
+
+      - name: Upload reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: raze-report
-          path: .raze/reports/fuzz.md
+          name: raze-reports
+          path: .raze/reports/
 ```
 
-The report is written to `.raze/reports/fuzz.md`. Use the `upload-artifact` step to preserve it across runs.
-
-If the scan finds a confirmed vulnerability (`assessment.decision: fix-now`), you can fail the pipeline by checking the report or exit code. Raze exits with code `0` regardless of findings — blocking on security findings is a team decision, not a default.
+`raze fuzz` exits with code `0` regardless of findings — detection is informational.
+`raze verify` exits with code `1` if any fix is incomplete — use this to gate merges.
 
 ## Golden Paths
 
-If you want to audit a contract:
+**Audit a contract (MCP):**
 
 1. Run `raze init` in the Foundry project.
-2. Use MCP with `raze_attack` for one authored plan or `raze_run_attack_suite` for multiple authored plans.
-3. Read the final result from `assessment.decision`, `assessment.decisionReason`, and `assessment.confirmationStatus`.
+2. Ask your AI: `"Analyze the Vault contract for security vulnerabilities."`
+3. The AI calls `raze_inspect_project` → `raze_analyze_contract` → `raze_attack`.
+4. Read the report at `.raze/reports/fuzz.md`.
 
-If you want to generate fuzz tests as a developer:
+**Verify a fix:**
 
-1. Run `raze dev-fuzz . --contract <ContractName>`.
-2. Review the generated files under `test/raze/`.
-3. Run `forge test --offline` or `raze fuzz . --run --offline` to execute locally.
+1. Apply your fix to the contract (e.g., add `nonReentrant`).
+2. Run `raze verify . --contract Vault` or ask your AI to call `raze_verify_fix`.
+3. `fix-verified` = safe to merge. `fix-incomplete` = review the fix.
 
-If you want to harden a contract after analysis:
+**Generate developer fuzz tests:**
 
-1. Use `raze_suggest_hardening` after inspection or attack execution.
-2. Apply the recommended remediation for the confirmed or investigated issue.
-3. Add the suggested follow-up test so the unsafe behavior stays covered.
+1. Run `raze dev-fuzz . --contract Counter`.
+2. Review generated files under `test/raze/`.
+3. Run `forge test` to execute.
+
+**CI/CD — block on unverified fixes:**
+
+1. Run `raze fuzz` to detect + generate scaffolds.
+2. Run `raze verify` to check fixes. Exit code 1 = incomplete fix.
 
 ## MCP
 
@@ -193,15 +251,16 @@ dist/src/interfaces/mcp/server.js
 
 It exposes:
 
-- `raze_inspect_project`
-- `raze_validate_attack_plan`
-- `raze_generate_proof_scaffold`
-- `raze_generate_developer_fuzz_tests`
-- `raze_suggest_hardening`
-- `raze_run_attack_suite`
-- `raze_attack`
-- `raze_analyze_contract`
-- `raze_write_report`
+- `raze_inspect_project` — discover contracts, functions, and risk signals
+- `raze_analyze_contract` — run heuristic agents on a specific contract
+- `raze_validate_attack_plan` — validate an AI-authored plan against real symbols
+- `raze_generate_proof_scaffold` — generate deterministic Foundry proof tests
+- `raze_attack` — validate + scaffold + run in one step
+- `raze_run_attack_suite` — multi-plan variant of `raze_attack`
+- `raze_verify_fix` — run proof + regression scaffolds to confirm a fix works
+- `raze_suggest_hardening` — produce remediation steps after analysis
+- `raze_generate_developer_fuzz_tests` — broad fuzz tests per function
+- `raze_write_report` — persist a structured report from results
 
 VS Code/Codex requires MCP tool names to contain only `[a-z0-9_-]`, so Raze uses `snake_case` tool names.
 
@@ -281,6 +340,13 @@ Based on what you find, propose one or more attack hypotheses.
 For each hypothesis, call raze_validate_attack_plan to check it against real symbols.
 Then call raze_generate_proof_scaffold and run the generated Forge tests.
 Report the confirmationStatus and decision for each finding.
+```
+
+**Verify a fix after applying remediation:**
+
+```text
+I applied a nonReentrant modifier to the withdraw function in the StakingPool contract.
+Verify if the fix is effective using raze_verify_fix on /path/to/project.
 ```
 
 **Harden after finding a vulnerability:**

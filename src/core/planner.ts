@@ -82,6 +82,13 @@ export async function selectContract(projectRoot: string, selector?: string): Pr
   throw new Error(`Contract selector "${selector}" did not match any contract`);
 }
 
+/**
+ * Extracts the primary contract name from Solidity source, falling back to the file basename.
+ *
+ * @param source - Raw Solidity source code.
+ * @param contractPath - File path used as fallback for the contract name.
+ * @returns The extracted contract name.
+ */
 function extractContractName(source: string, contractPath: string): string {
   const matches = [...source.matchAll(CONTRACT_REGEX)];
   if (matches.length > 0) {
@@ -90,10 +97,22 @@ function extractContractName(source: string, contractPath: string): string {
   return path.basename(contractPath, ".sol");
 }
 
+/**
+ * Extracts all function names from Solidity source code.
+ *
+ * @param source - Raw Solidity source code.
+ * @returns Array of function name strings.
+ */
 function extractFunctions(source: string): string[] {
   return [...source.matchAll(FUNCTION_REGEX)].map((match) => match[1]);
 }
 
+/**
+ * Detects inherited contract signals (e.g. Ownable, ERC20, ReentrancyGuard) from source code.
+ *
+ * @param source - Raw Solidity source code.
+ * @returns Array of detected inherited signal identifiers.
+ */
 function extractInheritedSignals(source: string): string[] {
   const signals = new Set<string>();
   if (source.includes("Ownable")) {
@@ -128,6 +147,12 @@ function extractInheritedSignals(source: string): string[] {
   return [...signals];
 }
 
+/**
+ * Detects risk signals (e.g. low-level calls, unchecked blocks, flash-loan callbacks) from source code.
+ *
+ * @param source - Raw Solidity source code.
+ * @returns Array of detected risk signal identifiers.
+ */
 function extractRiskSignals(source: string): string[] {
   const signals = new Set<string>();
   if (source.match(/call\s*\{/)) {
@@ -166,6 +191,15 @@ function extractRiskSignals(source: string): string[] {
   return [...signals];
 }
 
+/**
+ * Determines which attack agents should be run based on source patterns, functions, and signals.
+ *
+ * @param source - Raw Solidity source code.
+ * @param functions - Extracted function names from the contract.
+ * @param inheritedSignals - Detected inherited contract signals.
+ * @param riskSignals - Detected risk signals.
+ * @returns Array of recommended attack type identifiers.
+ */
 function recommendAgents(source: string, functions: string[], inheritedSignals: string[], riskSignals: string[]): AttackType[] {
   const agents = new Set<AttackType>();
 
@@ -214,6 +248,13 @@ function recommendAgents(source: string, functions: string[], inheritedSignals: 
   return [...agents];
 }
 
+/**
+ * Resolves imported file paths from Solidity import statements, excluding external packages.
+ *
+ * @param source - Raw Solidity source code.
+ * @param contractPath - Absolute path of the importing contract file for resolution.
+ * @returns Array of resolved absolute paths for local imports.
+ */
 function extractImportedPaths(source: string, contractPath: string): string[] {
   const importRegex = /import\s+(?:\{[^}]+\}\s+from\s+|)["']([^"']+)["']/g;
   const resolved: string[] = [];
@@ -253,6 +294,13 @@ export async function analyzeContract(input: AttackPipelineInput): Promise<Contr
   };
 }
 
+/**
+ * Analyzes a single contract file by its absolute path, extracting all metadata.
+ *
+ * @param contractPath - Absolute path to the Solidity contract file.
+ * @param projectRoot - Absolute path to the Foundry project root.
+ * @returns Contract analysis result with functions, signals, and recommended agents.
+ */
 async function analyzeContractByPath(contractPath: string, projectRoot: string): Promise<ContractAnalysis> {
   const source = await fs.readFile(contractPath, "utf8");
   const functions = extractFunctions(source);

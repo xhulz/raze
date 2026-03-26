@@ -1,5 +1,6 @@
 import type { AttackAssessment, CrossContractFinding, GeneratedTest, ValidatedAttackPlan, ForgeRunResult, AttackFinding } from "./types.js";
 
+/** Internal input shape for building an attack assessment. */
 interface AssessableResult {
   findings: AttackFinding[];
   validatedPlans: ValidatedAttackPlan[];
@@ -9,6 +10,12 @@ interface AssessableResult {
   targetContractName?: string;
 }
 
+/**
+ * Determines whether the generated tests are strong enough to confirm a vulnerability by execution.
+ *
+ * @param result - Assessable result containing generated tests.
+ * @returns True if the scaffold family supports execution-backed confirmation.
+ */
 function canExecutionConfirm(result: AssessableResult): boolean {
   return (
     result.generatedTests.length > 0 &&

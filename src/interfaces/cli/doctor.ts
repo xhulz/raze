@@ -6,10 +6,23 @@ import { discoverContracts } from "../../core/planner.js";
 import { info } from "../../utils/logger.js";
 import type { DetectedEnvironment } from "../../core/types.js";
 
+/**
+ * Formats a label-value pair as a fixed-width row for CLI output.
+ *
+ * @param label - The row label, left-padded to 18 characters.
+ * @param value - The row value.
+ * @returns Formatted row string.
+ */
 function row(label: string, value: string): string {
   return `${label.padEnd(18)} ${value}`;
 }
 
+/**
+ * Infers the preferred code editor from the detected environment.
+ *
+ * @param env - The detected development environment.
+ * @returns Human-readable editor description string.
+ */
 function inferPreferredEditor(env: DetectedEnvironment): string {
   if (env.currentEditor !== "unknown") {
     return `${env.currentEditor} (active session)`;
@@ -26,6 +39,12 @@ function inferPreferredEditor(env: DetectedEnvironment): string {
   return "unknown";
 }
 
+/**
+ * Infers the preferred AI agent from the detected environment.
+ *
+ * @param env - The detected development environment.
+ * @returns Human-readable agent description string.
+ */
 function inferPreferredAgent(env: DetectedEnvironment): string {
   if (env.currentAgent !== "unknown") {
     return `${env.currentAgent} (active session)`;
@@ -39,6 +58,11 @@ function inferPreferredAgent(env: DetectedEnvironment): string {
   return "unknown";
 }
 
+/**
+ * Executes the CLI doctor command, printing environment diagnostics.
+ *
+ * @param projectRoot - Absolute path to the Foundry project root.
+ */
 export async function runDoctorCommand(projectRoot: string): Promise<void> {
   const env = await detectEnvironment();
   const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");

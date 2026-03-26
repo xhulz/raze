@@ -10,6 +10,13 @@ import {
 } from "./solidity.js";
 import type { AttackPipelineInput, DeveloperFuzzPlan, DeveloperFuzzResult, DeveloperGeneratedTest } from "./types.js";
 
+/**
+ * Selects the best public state variable to observe for a given function signature.
+ *
+ * @param source - Raw Solidity source code.
+ * @param signature - The function signature being tested.
+ * @returns The most suitable public state variable, or undefined if none found.
+ */
 function chooseObservableState(source: string, signature: FunctionSignature): PublicStateVariable | undefined {
   const variables = parsePublicStateVariables(source);
   if (signature.paramTypes.length >= 2 && signature.paramTypes[0] === "address" && signature.paramTypes[1].startsWith("uint")) {
@@ -18,6 +25,13 @@ function chooseObservableState(source: string, signature: FunctionSignature): Pu
   return variables.find((variable) => variable.type.startsWith("uint")) ?? variables.find((variable) => variable.type.startsWith("mapping"));
 }
 
+/**
+ * Builds a Solidity expression to read the value of an observable state variable.
+ *
+ * @param variable - The public state variable to observe.
+ * @param signature - The function signature (used to determine key argument naming).
+ * @returns Solidity expression string for reading the variable.
+ */
 function buildObservedExpression(variable: PublicStateVariable, signature: FunctionSignature): string {
   if (variable.type.startsWith("mapping")) {
     const keyType = variable.keyType?.trim() ?? "address";
@@ -27,6 +41,12 @@ function buildObservedExpression(variable: PublicStateVariable, signature: Funct
   return `target.${variable.name}()`;
 }
 
+/**
+ * Generates typed argument declarations for a fuzz test function based on parameter types.
+ *
+ * @param signature - The function signature to derive argument names and types from.
+ * @returns Array of objects with Solidity type and generated argument name.
+ */
 function buildTypedArgs(signature: FunctionSignature): Array<{ type: string; name: string }> {
   return signature.paramTypes.map((type, index) => {
     if (type === "address") {
@@ -42,12 +62,26 @@ function buildTypedArgs(signature: FunctionSignature): Array<{ type: string; nam
   });
 }
 
+/**
+ * Builds a comma-separated call argument string from the function signature's typed args.
+ *
+ * @param signature - The function signature to derive call arguments from.
+ * @returns Comma-separated argument names string for use in a Solidity function call.
+ */
 function buildCallArguments(signature: FunctionSignature): string {
   return buildTypedArgs(signature)
     .map((arg) => arg.name)
     .join(", ");
 }
 
+/**
+ * Derives the set of fuzz test family plans applicable to a single function.
+ *
+ * @param contractName - Name of the contract under test.
+ * @param signature - The function signature to plan tests for.
+ * @param source - Raw Solidity source code of the contract.
+ * @returns Array of developer fuzz plans covering applicable test families.
+ */
 function buildFamilyPlan(contractName: string, signature: FunctionSignature, source: string): DeveloperFuzzPlan[] {
   const plans: DeveloperFuzzPlan[] = [
     {
@@ -88,6 +122,15 @@ function buildFamilyPlan(contractName: string, signature: FunctionSignature, sou
   return plans;
 }
 
+/**
+ * Builds the Solidity fuzz test function body for a specific family plan.
+ *
+ * @param contractName - Name of the contract under test.
+ * @param signature - The function signature being tested.
+ * @param source - Raw Solidity source code of the contract.
+ * @param plan - The developer fuzz plan specifying the test family.
+ * @returns Solidity test function source string, or null if the family cannot be materialized.
+ */
 function buildTestFunction(contractName: string, signature: FunctionSignature, source: string, plan: DeveloperFuzzPlan): string | null {
   const args = buildTypedArgs(signature);
   const argDecl = args.map((arg) => `${arg.type} ${arg.name}`).join(", ");

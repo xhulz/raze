@@ -2,6 +2,12 @@ import path from "node:path";
 import { execFileSafe } from "../utils/exec.js";
 import type { ForgeRunResult } from "./types.js";
 
+/**
+ * Parses the Forge test summary line from stdout into structured pass/fail/skip counts.
+ *
+ * @param stdout - Raw stdout output from a Forge test run.
+ * @returns Parsed summary object, or undefined if the summary line is not found.
+ */
 function parseForgeSummary(stdout: string): ForgeRunResult["summary"] {
   const summaryMatch = stdout.match(/(\d+)\s+passed;\s+(\d+)\s+failed;\s+(\d+)\s+skipped/);
   if (!summaryMatch) {

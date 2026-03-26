@@ -1,8 +1,10 @@
+/** Parsed Solidity function signature with name and parameter types. */
 export interface FunctionSignature {
   name: string;
   paramTypes: string[];
 }
 
+/** Parsed public state variable declaration with type and optional mapping key type. */
 export interface PublicStateVariable {
   name: string;
   type: string;
@@ -14,6 +16,13 @@ const PUBLIC_FUNCTION_SIGNATURE_REGEX = /function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\
 const PUBLIC_STATE_REGEX = /(mapping\s*\(\s*([^=]+)=>\s*([^)]+)\)|[A-Za-z0-9_]+)\s+public\s+([A-Za-z_][A-Za-z0-9_]*)/g;
 const CONSTRUCTOR_REGEX = /constructor\s*\(([^)]*)\)/;
 
+/**
+ * Parses function signatures from Solidity source using the provided regex pattern.
+ *
+ * @param source - Raw Solidity source code.
+ * @param regex - Regular expression with capture groups for function name and parameters.
+ * @returns Array of parsed function signatures.
+ */
 function parseSignatures(source: string, regex: RegExp): FunctionSignature[] {
   return [...source.matchAll(regex)].map((match) => {
     const rawParams = match[2].trim();

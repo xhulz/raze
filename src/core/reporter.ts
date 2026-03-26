@@ -137,6 +137,14 @@ _Analysis source: ${result.analysisSource} · ${result.generatedTests.length} pr
   return reportPath;
 }
 
+/**
+ * Generates the "next step" instruction text based on the current confirmation status.
+ *
+ * @param confirmationStatus - The confirmation status from the attack assessment.
+ * @param scaffoldPath - Relative path to the first scaffold test file, or null.
+ * @param forgeCommand - The Forge command string from a previous run, if available.
+ * @returns Markdown-formatted next step instruction string.
+ */
 function buildNextStep(
   confirmationStatus: string,
   scaffoldPath: string | null,

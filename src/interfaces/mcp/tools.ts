@@ -19,6 +19,7 @@ import {
   verifySchema
 } from "./schemas.js";
 
+/** Registry of all Raze MCP tool definitions with schemas and execute handlers. */
 export const toolDefinitions = {
   raze_inspect_project: {
     description: "Scan all contracts in a Foundry project and return the full inventory, dependency graph, and cross-contract risk signals. Use this first when you don't know which contract to target.",
@@ -177,4 +178,5 @@ export const toolDefinitions = {
   }
 } as const;
 
+/** Union type of all registered Raze MCP tool names. */
 export type RazeToolName = keyof typeof toolDefinitions;

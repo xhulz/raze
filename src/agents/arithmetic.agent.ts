@@ -1,8 +1,17 @@
 import type { AttackAgent, AttackFinding, ContractAnalysis } from "../core/types.js";
 
+/**
+ * Detects unchecked arithmetic operations that may lead to overflow or underflow vulnerabilities.
+ */
 export class ArithmeticAgent implements AttackAgent {
   readonly type = "arithmetic" as const;
 
+  /**
+   * Scans the contract source for unchecked arithmetic mutations that could wrap around numeric boundaries.
+   *
+   * @param input - Parsed contract analysis containing source code, function names, and inherited signals.
+   * @returns An array of findings describing potential arithmetic overflow or underflow vectors.
+   */
   analyze(input: ContractAnalysis): AttackFinding[] {
     const findings: AttackFinding[] = [];
     const uncheckedMutation = input.source.match(/unchecked\s*\{[\s\S]*?(\+\+|--|\+=|-=|\*=)/);

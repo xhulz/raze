@@ -3,6 +3,13 @@ import { promises as fs } from "node:fs";
 import { sanitizeIdentifier } from "./solidity.js";
 import type { GeneratedTest, ValidatedAttackPlan } from "./types.js";
 
+/**
+ * Converts a JS value into a Solidity-compatible literal string based on its ABI type.
+ *
+ * @param type - The Solidity ABI type (e.g. "address", "uint256"), or undefined.
+ * @param value - The raw value to convert.
+ * @returns Solidity literal string representation.
+ */
 function solidityLiteral(type: string | undefined, value: string | number | boolean): string {
   if (!type) {
     return String(value);
@@ -19,6 +26,12 @@ function solidityLiteral(type: string | undefined, value: string | number | bool
   return String(value);
 }
 
+/**
+ * Builds a comma-separated Solidity argument string for the primary function call in a test.
+ *
+ * @param plan - Validated attack plan containing normalized sample arguments and type info.
+ * @returns Comma-separated Solidity literal arguments string.
+ */
 function buildFunctionCallArguments(plan: ValidatedAttackPlan): string {
   const signatureArgTypes = plan.normalizedSampleArguments.map((_, index) => {
     if (plan.targetStateVariableKeyType && index === 0 && plan.attackType === "access-control" && plan.targetStateVariableType?.startsWith("mapping")) {
@@ -32,6 +45,12 @@ function buildFunctionCallArguments(plan: ValidatedAttackPlan): string {
     .join(", ");
 }
 
+/**
+ * Builds a Solidity expression that reads the target observable state variable.
+ *
+ * @param plan - Validated attack plan with optional target state variable metadata.
+ * @returns Solidity expression string, or null if no observable variable is available.
+ */
 function buildObservedValueExpression(plan: ValidatedAttackPlan): string | null {
   if (!plan.targetStateVariable) {
     return null;
@@ -43,6 +62,12 @@ function buildObservedValueExpression(plan: ValidatedAttackPlan): string | null 
   return `target.${plan.targetStateVariable}()`;
 }
 
+/**
+ * Builds the Solidity test body for an access-control proof scaffold.
+ *
+ * @param plan - Validated attack plan for access-control testing.
+ * @returns Solidity test function source string.
+ */
 function buildAccessControlTest(plan: ValidatedAttackPlan): string {
   const observedExpr = buildObservedValueExpression(plan);
   const functionName = plan.resolvedFunctions[0];
@@ -63,6 +88,12 @@ function buildAccessControlTest(plan: ValidatedAttackPlan): string {
 `;
 }
 
+/**
+ * Builds the Solidity test body for an arithmetic drift proof scaffold.
+ *
+ * @param plan - Validated attack plan for arithmetic testing.
+ * @returns Solidity test function source string.
+ */
 function buildArithmeticTest(plan: ValidatedAttackPlan): string {
   const observedExpr = buildObservedValueExpression(plan);
   const functionName = plan.resolvedFunctions[0];
@@ -83,6 +114,12 @@ function buildArithmeticTest(plan: ValidatedAttackPlan): string {
 `;
 }
 
+/**
+ * Builds the Solidity regression test body for an access-control fix verification.
+ *
+ * @param plan - Validated attack plan for access-control regression testing.
+ * @returns Solidity regression test function source string.
+ */
 function buildAccessControlRegressionTest(plan: ValidatedAttackPlan): string {
   const functionName = plan.resolvedFunctions[0];
   const args = buildFunctionCallArguments(plan);
@@ -95,6 +132,12 @@ function buildAccessControlRegressionTest(plan: ValidatedAttackPlan): string {
 `;
 }
 
+/**
+ * Builds the Solidity regression test body for a reentrancy fix verification.
+ *
+ * @param plan - Validated attack plan for reentrancy regression testing.
+ * @returns Solidity regression test contract source string.
+ */
 function buildReentrancyRegressionTest(plan: ValidatedAttackPlan): string {
   const functionName = plan.resolvedFunctions[0];
   return `
@@ -114,6 +157,12 @@ contract ${plan.contractName}RegressionTest {
 `;
 }
 
+/**
+ * Builds the full Solidity source for a reentrancy proof scaffold including attacker and test contracts.
+ *
+ * @param plan - Validated attack plan for reentrancy testing.
+ * @returns Complete Solidity source string with attacker contract and test contract.
+ */
 function buildReentrancyTest(plan: ValidatedAttackPlan): string {
   const functionName = plan.resolvedFunctions[0];
   const setupFn = plan.reentrancySetupFunction ?? "deposit";
@@ -159,6 +208,12 @@ contract ${plan.contractName}${sanitizeIdentifier(plan.attackType)}Test {
 `;
 }
 
+/**
+ * Builds the Solidity source for a flash-loan lender proof scaffold with a borrower attacker contract.
+ *
+ * @param plan - Validated attack plan targeting a flash-loan lender contract.
+ * @returns Complete Solidity source string with borrower and test contracts.
+ */
 function buildFlashLoanLenderTest(plan: ValidatedAttackPlan): string {
   const lendFn = plan.resolvedFunctions[0] ?? "flashLoan";
   const observedExpr = buildObservedValueExpression(plan);
@@ -207,6 +262,12 @@ contract ${plan.contractName}${sanitizeIdentifier(plan.attackType)}Test {
 `;
 }
 
+/**
+ * Builds the Solidity source for a flash-loan receiver proof scaffold with a mock lender and attacker contract.
+ *
+ * @param plan - Validated attack plan targeting a flash-loan receiver contract.
+ * @returns Complete Solidity source string with mock lender, attacker, and test contracts.
+ */
 function buildFlashLoanReceiverTest(plan: ValidatedAttackPlan): string {
   const callbackFn = plan.resolvedFunctions[0] ?? "onFlashLoan";
   const observedExpr = buildObservedValueExpression(plan);
@@ -271,11 +332,23 @@ contract ${plan.contractName}${sanitizeIdentifier(plan.attackType)}Test {
 `;
 }
 
+/**
+ * Delegates to the appropriate flash-loan test builder based on the inferred role (lender or receiver).
+ *
+ * @param plan - Validated attack plan with flashLoanRole set.
+ * @returns Solidity source string for the flash-loan proof scaffold.
+ */
 function buildFlashLoanTest(plan: ValidatedAttackPlan): string {
   if (plan.flashLoanRole === "lender") return buildFlashLoanLenderTest(plan);
   return buildFlashLoanReceiverTest(plan);
 }
 
+/**
+ * Builds the Solidity source for a price-manipulation proof scaffold with a mock AMM pair.
+ *
+ * @param plan - Validated attack plan for price-manipulation testing.
+ * @returns Solidity source string with mock AMM pair and test contract.
+ */
 function buildPriceManipulationTest(plan: ValidatedAttackPlan): string {
   const functionName = plan.resolvedFunctions[0] ?? "getPrice";
   const observedExpr = buildObservedValueExpression(plan);
@@ -313,6 +386,13 @@ contract ${plan.contractName}${sanitizeIdentifier(plan.attackType)}Test {
 `;
 }
 
+/**
+ * Assembles the complete Solidity test file source by combining imports with the attack-type-specific test body.
+ *
+ * @param testFilePath - Absolute path where the test file will be written (used for relative import calculation).
+ * @param plan - Validated attack plan determining which builder to invoke.
+ * @returns Complete Solidity source string ready to be written to disk.
+ */
 function buildTestSource(testFilePath: string, plan: ValidatedAttackPlan): string {
   const relativeImport = path.relative(path.dirname(testFilePath), plan.contractPath).replace(/\\/g, "/");
   const contractImport = relativeImport.startsWith(".") ? relativeImport : `./${relativeImport}`;

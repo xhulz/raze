@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+/** Zod schema for an AI-authored or heuristic attack plan input. */
 export const attackPlanSchema = z.object({
   attackType: z.enum(["reentrancy", "access-control", "arithmetic", "flash-loan", "price-manipulation"]),
   contractName: z.string().min(1).optional(),
@@ -13,16 +14,19 @@ export const attackPlanSchema = z.object({
   sampleArguments: z.array(z.union([z.string(), z.number(), z.boolean()])).optional()
 });
 
+/** Zod schema for project root and optional contract selector. */
 export const projectSchema = z.object({
   projectRoot: z.string().min(1),
   contractSelector: z.string().min(1).optional()
 });
 
+/** Zod schema for developer fuzz test generation input. */
 export const developerFuzzSchema = projectSchema.extend({
   functionSelector: z.string().min(1).optional(),
   goal: z.string().min(1).optional()
 });
 
+/** Zod schema for a validated attack plan with resolved symbols. */
 export const validatedPlanSchema = attackPlanSchema.extend({
   contractName: z.string(),
   contractPath: z.string(),
@@ -33,6 +37,7 @@ export const validatedPlanSchema = attackPlanSchema.extend({
   normalizedSampleArguments: z.array(z.union([z.string(), z.number(), z.boolean()]))
 });
 
+/** Zod schema for a generated proof scaffold test. */
 export const generatedTestSchema = z.object({
   findingType: z.enum(["reentrancy", "access-control", "arithmetic", "flash-loan", "price-manipulation"]),
   testFilePath: z.string(),
@@ -41,6 +46,7 @@ export const generatedTestSchema = z.object({
   proofIntent: z.string()
 });
 
+/** Zod schema for a Forge test run result. */
 export const forgeRunSchema = z.object({
   command: z.string(),
   ok: z.boolean(),
@@ -56,6 +62,7 @@ export const forgeRunSchema = z.object({
     .optional()
 });
 
+/** Zod schema for an attack finding. */
 export const findingSchema = z.object({
   type: z.enum(["reentrancy", "access-control", "arithmetic", "flash-loan", "price-manipulation"]),
   confidence: z.enum(["low", "medium", "high"]),
@@ -66,22 +73,26 @@ export const findingSchema = z.object({
   functions: z.array(z.string())
 });
 
+/** Zod schema for the validate-attack-plan MCP tool input. */
 export const validateAttackPlanSchema = projectSchema.extend({
   attackPlan: attackPlanSchema
 });
 
+/** Zod schema for the single-attack MCP tool input. */
 export const attackSchemaMcp = projectSchema.extend({
   runForge: z.boolean().optional(),
   offline: z.boolean().optional(),
   attackPlan: attackPlanSchema
 });
 
+/** Zod schema for the attack-suite MCP tool input. */
 export const attackSuiteSchemaMcp = projectSchema.extend({
   offline: z.boolean().optional(),
   runForge: z.boolean().optional(),
   attackPlans: z.array(attackPlanSchema)
 });
 
+/** Zod schema for the report-write MCP tool input. */
 export const reportWriteSchema = z.object({
   projectRoot: z.string().min(1),
   contractSelector: z.string().min(1).optional(),
@@ -98,6 +109,7 @@ export const reportWriteSchema = z.object({
   interpretation: z.string().min(1)
 });
 
+/** Zod schema for the verify-fix MCP tool input. */
 export const verifySchema = z.object({
   projectRoot: z.string().min(1),
   contractSelector: z.string().min(1).optional(),

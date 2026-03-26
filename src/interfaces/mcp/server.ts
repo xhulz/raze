@@ -3,6 +3,12 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { ZodError } from "zod";
 import { toolDefinitions } from "./tools.js";
 
+/**
+ * Wraps a payload into the MCP text content response format.
+ *
+ * @param payload - The value to JSON-serialize into the response.
+ * @returns MCP-compatible content array with a single text entry.
+ */
 function jsonContent(payload: unknown) {
   return {
     content: [

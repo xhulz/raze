@@ -19,12 +19,26 @@ import type {
 
 const SOLIDITY_IDENTIFIER_REGEX = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 
+/**
+ * Asserts that a value is a valid Solidity identifier, throwing if not.
+ *
+ * @param value - The string to validate.
+ * @param field - The field name for error reporting.
+ */
 function assertSolidityIdentifier(value: string, field: string): void {
   if (!SOLIDITY_IDENTIFIER_REGEX.test(value)) {
     throw new Error(`Attack plan field "${field}" contains an invalid Solidity identifier: "${value}"`);
   }
 }
 
+/**
+ * Infers the best observable public state variable for a given attack plan and function signature.
+ *
+ * @param analysis - Contract analysis containing the source code.
+ * @param attackPlan - The attack plan with optional explicit target state variable.
+ * @param signature - The primary function signature being targeted.
+ * @returns The matched public state variable, or undefined if none is suitable.
+ */
 function inferTargetStateVariable(analysis: ContractAnalysis, attackPlan: AttackPlanInput, signature: FunctionSignature): PublicStateVariable | undefined {
   const publicVars = parsePublicStateVariables(analysis.source);
   if (attackPlan.targetStateVariable) {
@@ -63,6 +77,12 @@ function inferTargetStateVariable(analysis: ContractAnalysis, attackPlan: Attack
   return undefined;
 }
 
+/**
+ * Generates default sample argument values based on the function parameter types.
+ *
+ * @param signature - The function signature to derive arguments for.
+ * @returns Array of default values matching each parameter type.
+ */
 function inferSampleArguments(signature: FunctionSignature): Array<string | number | boolean> {
   return signature.paramTypes.map((type) => {
     if (type === "address") {
@@ -78,12 +98,24 @@ function inferSampleArguments(signature: FunctionSignature): Array<string | numb
   });
 }
 
+/**
+ * Validates that the number of sample arguments matches the function parameter count.
+ *
+ * @param signature - The function signature to validate against.
+ * @param sampleArguments - The sample arguments to check.
+ */
 function validateSampleArguments(signature: FunctionSignature, sampleArguments: Array<string | number | boolean>): void {
   if (signature.paramTypes.length !== sampleArguments.length) {
     throw new Error(`Attack plan references ${signature.name} with ${sampleArguments.length} sample arguments, expected ${signature.paramTypes.length}`);
   }
 }
 
+/**
+ * Extracts the contract selector from the pipeline input, preferring the attack plan's contract name.
+ *
+ * @param input - Pipeline input with optional contract selector and attack plan.
+ * @returns Contract selector string, or undefined if none is specified.
+ */
 function toContractSelector(input: AttackPipelineInput): string | undefined {
   return input.attackPlan?.contractName ?? input.contractSelector;
 }
@@ -116,11 +148,24 @@ export async function inspectProject(projectRoot: string): Promise<ProjectInspec
 
 const DEPOSIT_PATTERN_PRIORITY = ["deposit", "stake", "add", "supply", "provide", "fund", "invest"];
 
+/**
+ * Infers the setup function name (e.g. "deposit") to use before the reentrancy attack call.
+ *
+ * @param functions - All public functions in the contract.
+ * @param attackFunctions - Functions targeted by the attack plan (excluded from candidates).
+ * @returns The best matching setup function name, defaulting to "deposit".
+ */
 function inferReentrancySetupFunction(functions: string[], attackFunctions: string[]): string {
   const candidates = functions.filter((fn) => !attackFunctions.includes(fn));
   return DEPOSIT_PATTERN_PRIORITY.find((name) => candidates.includes(name)) ?? "deposit";
 }
 
+/**
+ * Infers whether a contract acts as a flash-loan lender or receiver based on its function names.
+ *
+ * @param functions - All public functions in the contract.
+ * @returns The inferred flash loan role, defaulting to "receiver".
+ */
 function inferFlashLoanRole(functions: string[]): "lender" | "receiver" {
   const lenderFns = ["flashLoan", "flashBorrow", "flashLoanSimple"];
   const receiverFns = ["onFlashLoan", "executeOperation", "receiveFlashLoan", "callFunction"];

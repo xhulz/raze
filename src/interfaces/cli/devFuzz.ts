@@ -2,6 +2,12 @@ import path from "node:path";
 import { generateDeveloperFuzzTests } from "../../core/developerFuzz.js";
 import { info, success } from "../../utils/logger.js";
 
+/**
+ * Executes the CLI dev-fuzz command, generating developer fuzz tests and printing results.
+ *
+ * @param projectRoot - Absolute path to the Foundry project root.
+ * @param options - CLI options for contract and function selectors.
+ */
 export async function runDeveloperFuzzCommand(
   projectRoot: string,
   options: {

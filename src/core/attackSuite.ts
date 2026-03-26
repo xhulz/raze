@@ -20,6 +20,12 @@ import type {
 
 const ALL_ATTACK_TYPES: AttackType[] = ["reentrancy", "access-control", "arithmetic", "flash-loan", "price-manipulation"];
 
+/**
+ * Aggregates per-plan results into per-attack-type family summaries.
+ *
+ * @param planResults - Array of individual plan execution results.
+ * @returns Array of family-level summaries, one per attack type.
+ */
 function toFamilySummary(planResults: AttackSuitePlanResult[]): AttackSuiteFamilyResult[] {
   return ALL_ATTACK_TYPES.map((attackType) => {
     const familyPlans = planResults.filter((plan) => plan.attackType === attackType);
@@ -53,6 +59,12 @@ function toFamilySummary(planResults: AttackSuitePlanResult[]): AttackSuiteFamil
   });
 }
 
+/**
+ * Writes the Markdown attack suite report to disk.
+ *
+ * @param result - Suite result data excluding the report path.
+ * @returns Absolute path to the written report file.
+ */
 async function writeAttackSuiteReport(result: Omit<AttackSuiteResult, "reportPath">): Promise<string> {
   const reportsDir = path.join(result.projectRoot, ".raze", "reports");
   await fs.mkdir(reportsDir, { recursive: true });
@@ -125,6 +137,14 @@ ${forgeSection}
   return reportPath;
 }
 
+/**
+ * Validates a single attack plan, runs agents, and generates proof scaffolds for it.
+ *
+ * @param input - Pipeline input with project root, contract selector, and execution context.
+ * @param plan - The attack plan to validate and execute.
+ * @param planSource - Origin of the plan ("ai-authored" or "heuristic-fallback").
+ * @returns Per-plan result including findings, validated plan, generated tests, and assessment.
+ */
 async function buildPlanResult(
   input: Pick<AttackPipelineInput, "projectRoot" | "contractSelector" | "executionContext">,
   plan: AttackPlanInput,
@@ -150,6 +170,13 @@ async function buildPlanResult(
   };
 }
 
+/**
+ * Re-assesses plan results after Forge execution to update proof status and assessment.
+ *
+ * @param planResults - Array of plan results to finalize.
+ * @param forgeRun - Optional Forge run result to incorporate into assessments.
+ * @returns Updated plan results with finalized proof status and assessment.
+ */
 function finalizePlanResults(planResults: AttackSuitePlanResult[], forgeRun: AttackSuiteResult["forgeRun"]): AttackSuitePlanResult[] {
   return planResults.map((plan) => {
     const proofStatus = (plan.generatedTests.length > 0 ? (forgeRun ? "executed" : "scaffold-generated") : "no-scaffold") as ProofStatus;

@@ -44,6 +44,13 @@ export function interpretVerifyResults(
   return { verdict: "fix-incomplete", reason: reasons.join(" ") };
 }
 
+/**
+ * Discovers existing proof scaffold test files grouped by contract name.
+ *
+ * @param projectRoot - Absolute path to the Foundry project root.
+ * @param contractFilter - Optional contract name to filter discovered scaffolds.
+ * @returns Map from contract name to array of scaffold file paths.
+ */
 async function discoverScaffolds(projectRoot: string, contractFilter?: string): Promise<Map<string, string[]>> {
   const testDir = path.join(projectRoot, "test", "raze");
   const exists = await fs.access(testDir).then(() => true).catch(() => false);
@@ -64,6 +71,12 @@ async function discoverScaffolds(projectRoot: string, contractFilter?: string): 
   return scaffolds;
 }
 
+/**
+ * Generates the Markdown content for a verification report.
+ *
+ * @param result - The verification result with per-contract verdicts.
+ * @returns Markdown string for the verification report.
+ */
 function writeVerifyReport(result: VerifyResult): string {
   const overallLabel = result.overallVerdict === "all-fixed" ? "ALL FIXED" : "INCOMPLETE";
 

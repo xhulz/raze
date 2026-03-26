@@ -4,10 +4,20 @@ import { promises as fs } from "node:fs";
 import { execFileSafe } from "./exec.js";
 import type { DetectedEnvironment } from "../core/types.js";
 
+/**
+ * Returns the file path for the Cursor MCP configuration.
+ *
+ * @returns Absolute path to the Cursor MCP config file.
+ */
 function getCursorConfigPath(): string {
   return process.env.RAZE_CURSOR_CONFIG_PATH ?? path.join(os.homedir(), ".cursor", "mcp.json");
 }
 
+/**
+ * Returns candidate file paths for the Claude MCP configuration.
+ *
+ * @returns Array of absolute paths to check for Claude MCP config.
+ */
 function getClaudeConfigCandidates(): string[] {
   if (process.env.RAZE_CLAUDE_CONFIG_PATH) {
     return [process.env.RAZE_CLAUDE_CONFIG_PATH];
@@ -20,6 +30,11 @@ function getClaudeConfigCandidates(): string[] {
   ];
 }
 
+/**
+ * Returns candidate file paths for the VS Code MCP configuration.
+ *
+ * @returns Array of absolute paths to check for VS Code MCP config.
+ */
 function getVsCodeConfigCandidates(): string[] {
   if (process.env.RAZE_VSCODE_CONFIG_PATH) {
     return [process.env.RAZE_VSCODE_CONFIG_PATH];
@@ -32,6 +47,11 @@ function getVsCodeConfigCandidates(): string[] {
   ];
 }
 
+/**
+ * Checks whether the OpenAI Codex VS Code extension is installed.
+ *
+ * @returns True if the Codex extension directory is found.
+ */
 async function detectCodexVsCodeExtension(): Promise<boolean> {
   const extensionsDir = path.join(os.homedir(), ".vscode", "extensions");
   try {
@@ -42,6 +62,12 @@ async function detectCodexVsCodeExtension(): Promise<boolean> {
   }
 }
 
+/**
+ * Checks whether a file exists at the given path.
+ *
+ * @param filePath - Absolute path to check.
+ * @returns True if the file is accessible.
+ */
 async function fileExists(filePath: string): Promise<boolean> {
   try {
     await fs.access(filePath);
@@ -51,6 +77,13 @@ async function fileExists(filePath: string): Promise<boolean> {
   }
 }
 
+/**
+ * Detects the version of a CLI command by executing it with the given arguments.
+ *
+ * @param command - The command to execute.
+ * @param args - Arguments to pass (typically "--version").
+ * @returns Object with ok flag and parsed version string, or null on failure.
+ */
 async function detectCommandVersion(command: string, args: string[]): Promise<{ ok: boolean; version: string | null }> {
   const result = await execFileSafe(command, args);
   if (!result.ok) {
@@ -59,6 +92,11 @@ async function detectCommandVersion(command: string, args: string[]): Promise<{ 
   return { ok: true, version: result.stdout.trim() || result.stderr.trim() || null };
 }
 
+/**
+ * Detects the full development environment including Node.js, Forge, editor, agent, and MCP targets.
+ *
+ * @returns Detected environment with toolchain versions, editor/agent context, and MCP targets.
+ */
 export async function detectEnvironment(): Promise<DetectedEnvironment> {
   const cursorConfigPath = getCursorConfigPath();
   const claudeConfigCandidates = getClaudeConfigCandidates();

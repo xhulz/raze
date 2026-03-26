@@ -15,8 +15,9 @@ function parseForgeSummary(stdout: string): ForgeRunResult["summary"] {
   };
 }
 
-export async function runForgeTests(projectRoot: string, options: { offline?: boolean } = {}): Promise<ForgeRunResult> {
-  const args = ["test", "--match-test", "proof_scaffold", ...(options.offline ? ["--offline"] : []), "--root", projectRoot];
+export async function runForgeTests(projectRoot: string, options: { offline?: boolean; matchTest?: string; matchPath?: string } = {}): Promise<ForgeRunResult> {
+  const matchTest = options.matchTest ?? "proof_scaffold";
+  const args = ["test", "--match-test", matchTest, ...(options.matchPath ? ["--match-path", options.matchPath] : []), ...(options.offline ? ["--offline"] : []), "--root", projectRoot];
   const result = await execFileSafe("forge", args, {
     cwd: projectRoot
   });

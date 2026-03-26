@@ -15,7 +15,7 @@ function canExecutionConfirm(result: AssessableResult): boolean {
     result.generatedTests.every(
       (test) =>
         test.findingType !== "reentrancy" ||
-        (test.source.includes('require(attacker.reentryCount() == 1, "reentrant callback was not observed")') &&
+        (test.source.includes('require(attacker.reentryCount() == 2, "reentrant callback was not observed")') &&
           test.source.includes('require(address(attacker).balance > 1 ether, "attacker did not extract excess value")'))
     )
   );

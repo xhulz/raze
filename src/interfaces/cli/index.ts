@@ -6,6 +6,7 @@ import { runInitCommand } from "./init.js";
 import { runDoctorCommand } from "./doctor.js";
 import { runFuzzCommand } from "./fuzz.js";
 import { runDeveloperFuzzCommand } from "./devFuzz.js";
+import { runVerifyCommand } from "./verify.js";
 import { failure } from "../../utils/logger.js";
 
 loadEnv();
@@ -45,6 +46,15 @@ program
   .option("--function <name>", "Specific public or external function to target")
   .action(async (targetPath, options) => {
     await runDeveloperFuzzCommand(path.resolve(targetPath), options);
+  });
+
+program
+  .command("verify")
+  .argument("[path]", "Foundry project root", process.cwd())
+  .option("--contract <path-or-name>", "Specific contract to verify")
+  .option("--offline", "Execute forge test in offline mode", false)
+  .action(async (targetPath, options) => {
+    await runVerifyCommand(path.resolve(targetPath), options);
   });
 
 program.parseAsync(process.argv).catch((error: unknown) => {

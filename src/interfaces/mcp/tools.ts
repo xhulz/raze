@@ -8,6 +8,7 @@ import { generateProofScaffolds } from "../../core/tester.js";
 import { runAttackAgents } from "../../core/attacker.js";
 import { inspectProject, validateAttackPlan } from "../../core/orchestrator.js";
 import { writeReport } from "../../core/reporter.js";
+import { verifyFixes } from "../../core/verifier.js";
 
 const attackPlanSchema = z.object({
   attackType: z.enum(["reentrancy", "access-control", "arithmetic", "flash-loan", "price-manipulation"]),
@@ -328,6 +329,25 @@ export const toolDefinitions = {
         }
       });
       return { reportPath };
+    }
+  },
+  raze_verify_fix: {
+    description: "Run proof and regression tests to verify a developer's fix is effective. Returns per-contract verdict: fix-verified, fix-incomplete, or error.",
+    schema: z.object({
+      projectRoot: z.string().min(1),
+      contractSelector: z.string().min(1).optional(),
+      offline: z.boolean().optional()
+    }),
+    async execute(input: unknown) {
+      const parsed = z.object({
+        projectRoot: z.string().min(1),
+        contractSelector: z.string().min(1).optional(),
+        offline: z.boolean().optional()
+      }).parse(input);
+      return verifyFixes(parsed.projectRoot, {
+        contract: parsed.contractSelector,
+        offline: parsed.offline
+      });
     }
   }
 } as const;

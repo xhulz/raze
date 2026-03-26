@@ -132,6 +132,22 @@ export interface AttackPipelineResult {
   crossContractFindings?: CrossContractFinding[];
 }
 
+export interface VerifyContractResult {
+  contractName: string;
+  scaffoldFiles: string[];
+  proofRun: ForgeRunResult;
+  regressionRun: ForgeRunResult;
+  verdict: "fix-verified" | "fix-incomplete" | "no-scaffolds" | "error";
+  reason: string;
+}
+
+export interface VerifyResult {
+  projectRoot: string;
+  contracts: VerifyContractResult[];
+  overallVerdict: "all-fixed" | "some-incomplete" | "no-scaffolds" | "error";
+  reportPath: string;
+}
+
 export interface HardeningSuggestion {
   title: string;
   issue: string;

@@ -110,7 +110,7 @@ contract ${plan.contractName}RegressionTest {
         vm.deal(address(this), 1 ether);
         vm.deal(address(target), 2 ether);
         attacker.attack{value: 1 ether}();
-        require(attacker.reentryCount() == 0, "reentrant callback should have been blocked by fix");
+        require(attacker.reentryCount() <= 1, "reentrant callback should have been blocked by fix");
         require(address(attacker).balance <= 1 ether, "attacker should not extract excess value after fix");
     }
 }
@@ -140,7 +140,8 @@ contract ${plan.contractName}ReentrancyAttacker {
     receive() external payable {
         if (reentryCount == 0) {
             reentryCount = 1;
-            target.${functionName}();
+            (bool ok,) = address(target).call(abi.encodeWithSignature("${functionName}()"));
+            if (ok) reentryCount = 2;
         }
     }
 }
@@ -154,7 +155,7 @@ contract ${plan.contractName}${sanitizeIdentifier(plan.attackType)}Test {
         vm.deal(address(this), 1 ether);
         vm.deal(address(target), 2 ether);
         attacker.attack{value: 1 ether}();
-        require(attacker.reentryCount() == 1, "reentrant callback was not observed");
+        require(attacker.reentryCount() == 2, "reentrant callback was not observed");
         require(address(attacker).balance > 1 ether, "attacker did not extract excess value");
     }
 }

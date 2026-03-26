@@ -9,3 +9,7 @@ test("MCP tool names are valid for VS Code/Codex", () => {
     assert.match(toolName, /^[a-z0-9_-]+$/);
   }
 });
+
+test("raze_verify_fix tool is registered", () => {
+  assert.ok("raze_verify_fix" in toolDefinitions);
+});

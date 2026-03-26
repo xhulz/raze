@@ -1,8 +1,12 @@
-import path from "node:path";
 import { promises as fs } from "node:fs";
-import type { AttackPipelineResult } from "./types";
-import { deriveSeverity, describeVerdictSummary, interpretForgeResult } from "./presentation";
+import path from "node:path";
 import { suggestionsFromFindings } from "./hardening";
+import {
+  deriveSeverity,
+  describeVerdictSummary,
+  interpretForgeResult,
+} from "./presentation";
+import type { AttackPipelineResult } from "./types";
 
 /**
  * Writes a Markdown security report summarizing findings, verdicts, proof scaffolds, and next steps.
@@ -10,7 +14,9 @@ import { suggestionsFromFindings } from "./hardening";
  * @param result - Pipeline result data excluding the report path (which this function generates).
  * @returns Absolute path to the written report file.
  */
-export async function writeReport(result: Omit<AttackPipelineResult, "reportPath">): Promise<string> {
+export async function writeReport(
+  result: Omit<AttackPipelineResult, "reportPath">,
+): Promise<string> {
   const reportsDir = path.join(result.projectRoot, ".raze", "reports");
   await fs.mkdir(reportsDir, { recursive: true });
 
@@ -20,11 +26,13 @@ export async function writeReport(result: Omit<AttackPipelineResult, "reportPath
   const fixByType = new Map<string, (typeof suggestions)[0]>();
   for (const finding of result.findings) {
     const match = suggestions.find((s) => {
-      if (finding.type === "access-control") return s.title.includes("authorization");
+      if (finding.type === "access-control")
+        return s.title.includes("authorization");
       if (finding.type === "reentrancy") return s.title.includes("Finalize");
       if (finding.type === "arithmetic") return s.title.includes("arithmetic");
       if (finding.type === "flash-loan") return s.title.includes("flash loan");
-      if (finding.type === "price-manipulation") return s.title.includes("price");
+      if (finding.type === "price-manipulation")
+        return s.title.includes("price");
       return false;
     });
     if (match) fixByType.set(finding.type, match);
@@ -32,14 +40,20 @@ export async function writeReport(result: Omit<AttackPipelineResult, "reportPath
 
   // Verdict table
   const decisionLabel = result.assessment.decision.toUpperCase();
-  const verdictSummary = describeVerdictSummary(result.assessment, result.findings);
+  const verdictSummary = describeVerdictSummary(
+    result.assessment,
+    result.findings,
+  );
 
   const verdictTable =
     result.findings.length > 0
       ? `| # | Type | Contract | Function(s) | Severity |\n|---|---|---|---|---|\n` +
         result.findings
           .map((f, i) => {
-            const severity = deriveSeverity(f.confidence, result.assessment.decision);
+            const severity = deriveSeverity(
+              f.confidence,
+              result.assessment.decision,
+            );
             return `| ${i + 1} | ${f.type} | ${f.contract} | ${f.functions.join(", ") || "—"} | ${severity} |`;
           })
           .join("\n")
@@ -50,8 +64,13 @@ export async function writeReport(result: Omit<AttackPipelineResult, "reportPath
     result.findings.length > 0
       ? result.findings
           .map((finding, index) => {
-            const severity = deriveSeverity(finding.confidence, result.assessment.decision);
-            const scaffold = result.generatedTests.find((t) => t.findingType === finding.type);
+            const severity = deriveSeverity(
+              finding.confidence,
+              result.assessment.decision,
+            );
+            const scaffold = result.generatedTests.find(
+              (t) => t.findingType === finding.type,
+            );
             const scaffoldLine = scaffold
               ? `**Proof test:** \`${path.relative(result.projectRoot, scaffold.testFilePath)}\``
               : "_No proof scaffold was generated for this finding._";
@@ -60,9 +79,13 @@ export async function writeReport(result: Omit<AttackPipelineResult, "reportPath
               ? `**How to fix:** ${fix.title}\n- Why it matters: ${fix.whyItMatters}\n- What to change: ${fix.recommendedChange}`
               : "";
             // Include hypothesis only when AI-authored and different from the generic attack vector
-            const plan = result.validatedPlans.find((p) => p.attackType === finding.type);
+            const plan = result.validatedPlans.find(
+              (p) => p.attackType === finding.type,
+            );
             const hypothesisLine =
-              plan && plan.planSource === "ai-authored" && plan.attackHypothesis !== finding.attackVector
+              plan &&
+              plan.planSource === "ai-authored" &&
+              plan.attackHypothesis !== finding.attackVector
                 ? `**Attack hypothesis:** ${plan.attackHypothesis}`
                 : "";
 
@@ -83,10 +106,17 @@ ${scaffoldLine}`;
   // Next step — one clear action
   const scaffoldPath =
     result.generatedTests.length > 0
-      ? path.relative(result.projectRoot, result.generatedTests[0]!.testFilePath)
+      ? path.relative(
+          result.projectRoot,
+          result.generatedTests[0]?.testFilePath,
+        )
       : null;
 
-  const nextStep = buildNextStep(result.assessment.confirmationStatus, scaffoldPath, result.forgeRun?.command);
+  const nextStep = buildNextStep(
+    result.assessment.confirmationStatus,
+    scaffoldPath,
+    result.forgeRun?.command,
+  );
 
   // Execution block
   const forgeInterpretation = interpretForgeResult(result.forgeRun);
@@ -99,7 +129,7 @@ ${scaffoldLine}`;
     ? `## Cross-Contract Risk Signals\n\n${result.crossContractFindings
         .map(
           (f, i) =>
-            `### ${i + 1}. ${f.type} (${f.confidence})\n\n- Caller: ${f.callerContract}\n- Callee: ${f.calleeContract}.${f.calleeFunction}()\n- What: ${f.description}\n- Attack vector: ${f.attackVector}\n`
+            `### ${i + 1}. ${f.type} (${f.confidence})\n\n- Caller: ${f.callerContract}\n- Callee: ${f.calleeContract}.${f.calleeFunction}()\n- What: ${f.description}\n- Attack vector: ${f.attackVector}\n`,
         )
         .join("\n")}`
     : "";
@@ -148,7 +178,7 @@ _Analysis source: ${result.analysisSource} · ${result.generatedTests.length} pr
 function buildNextStep(
   confirmationStatus: string,
   scaffoldPath: string | null,
-  forgeCommand: string | undefined
+  forgeCommand: string | undefined,
 ): string {
   const matchFlag = scaffoldPath ? `--match-path ${scaffoldPath} ` : "";
   const root = forgeCommand?.match(/--root ([^\s]+)/)?.[1] ?? ".";

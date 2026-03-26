@@ -14,40 +14,48 @@ function jsonContent(payload: unknown) {
     content: [
       {
         type: "text" as const,
-        text: JSON.stringify(payload, null, 2)
-      }
-    ]
+        text: JSON.stringify(payload, null, 2),
+      },
+    ],
   };
 }
 
 const server = new McpServer({
   name: "raze",
-  version: "0.1.0"
+  version: "0.1.0",
 });
 
 for (const [name, definition] of Object.entries(toolDefinitions)) {
-  server.registerTool(name, {
-    description: definition.description,
-    inputSchema: definition.schema.shape
-  }, async (args: Record<string, unknown>) => {
-    try {
-      const result = await definition.execute(args);
-      return jsonContent({
-        ok: true,
-        result
-      });
-    } catch (error) {
-      const message =
-        error instanceof ZodError ? "Invalid tool input" : error instanceof Error ? error.message : String(error);
-      return jsonContent({
-        ok: false,
-        error: {
-          message,
-          details: error instanceof ZodError ? error.issues : undefined
-        }
-      });
-    }
-  });
+  server.registerTool(
+    name,
+    {
+      description: definition.description,
+      inputSchema: definition.schema.shape,
+    },
+    async (args: Record<string, unknown>) => {
+      try {
+        const result = await definition.execute(args);
+        return jsonContent({
+          ok: true,
+          result,
+        });
+      } catch (error) {
+        const message =
+          error instanceof ZodError
+            ? "Invalid tool input"
+            : error instanceof Error
+              ? error.message
+              : String(error);
+        return jsonContent({
+          ok: false,
+          error: {
+            message,
+            details: error instanceof ZodError ? error.issues : undefined,
+          },
+        });
+      }
+    },
+  );
 }
 
 const transport = new StdioServerTransport();

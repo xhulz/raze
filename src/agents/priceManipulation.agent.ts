@@ -1,4 +1,8 @@
-import type { AttackAgent, AttackFinding, ContractAnalysis } from "../core/types";
+import type {
+  AttackAgent,
+  AttackFinding,
+  ContractAnalysis,
+} from "../core/types";
 
 /**
  * Detects price manipulation vulnerabilities by identifying unprotected spot price reads from AMMs and oracles.
@@ -24,7 +28,14 @@ export class PriceManipulationAgent implements AttackAgent {
       input.source.includes("getAmountsIn") ||
       input.inheritedSignals.includes("AMM");
 
-    const priceFunctions = ["getPrice", "getReserves", "latestAnswer", "latestRoundData", "slot0", "observe"];
+    const priceFunctions = [
+      "getPrice",
+      "getReserves",
+      "latestAnswer",
+      "latestRoundData",
+      "slot0",
+      "observe",
+    ];
     const hasPriceRead =
       input.functions.some((name) => priceFunctions.includes(name)) ||
       input.riskSignals.includes("spot-price-read") ||
@@ -37,7 +48,8 @@ export class PriceManipulationAgent implements AttackAgent {
       input.source.includes("price1CumulativeLast");
 
     const hasChainlinkStaleness =
-      input.source.includes("updatedAt") && input.source.match(/updatedAt\s*[><!]/) !== null;
+      input.source.includes("updatedAt") &&
+      input.source.match(/updatedAt\s*[><!]/) !== null;
 
     const isProtected = hasTWAP || hasChainlinkStaleness;
 
@@ -53,8 +65,14 @@ export class PriceManipulationAgent implements AttackAgent {
           "Deploy a MockAMMPair with configurable getReserves(). Set skewed reserves, call the price-dependent target function, and assert the result deviates from the fair-price baseline.",
         contract: input.contractName,
         functions: input.functions.filter((name) =>
-          [...priceFunctions, "liquidate", "borrow", "mint", "getCollateralValue"].includes(name)
-        )
+          [
+            ...priceFunctions,
+            "liquidate",
+            "borrow",
+            "mint",
+            "getCollateralValue",
+          ].includes(name),
+        ),
       });
     } else if (hasPriceRead && !isProtected) {
       findings.push({
@@ -67,7 +85,9 @@ export class PriceManipulationAgent implements AttackAgent {
         suggestedTest:
           "Mock the oracle return value to an extreme price and assert the contract responds safely.",
         contract: input.contractName,
-        functions: input.functions.filter((name) => priceFunctions.includes(name))
+        functions: input.functions.filter((name) =>
+          priceFunctions.includes(name),
+        ),
       });
     }
 

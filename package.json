@@ -23,6 +23,8 @@
     "build": "tsc -p tsconfig.json && tsc-esm-fix --target dist",
     "clean": "rm -rf dist",
     "dev": "node --loader ts-node/esm src/interfaces/cli/index.ts",
+    "lint": "biome check src/ test/",
+    "lint:fix": "biome check --write src/ test/",
     "test": "npm run build && node --test dist/test/**/*.test.js"
   },
   "keywords": [
@@ -44,6 +46,7 @@
     "zod": "^4.1.5"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.4.9",
     "@types/node": "^24.3.0",
     "ts-node": "^10.9.2",
     "tsc-esm-fix": "^3.1.2",

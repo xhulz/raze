@@ -15,17 +15,19 @@ export async function runFuzzCommand(
     contract?: string;
     run?: boolean;
     offline?: boolean;
-  }
+  },
 ): Promise<void> {
   const result = await runAttackPipeline({
     projectRoot,
     contractSelector: options.contract,
     runForge: Boolean(options.run),
     offline: Boolean(options.offline),
-    executionContext: "cli"
+    executionContext: "cli",
   });
 
-  success(`${result.analysis.contractName} — ${describeDecision(result.assessment.decision)}`);
+  success(
+    `${result.analysis.contractName} — ${describeDecision(result.assessment.decision)}`,
+  );
   info(result.assessment.decisionReason);
 
   if (result.generatedTests.length > 0) {

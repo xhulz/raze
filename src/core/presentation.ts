@@ -1,4 +1,9 @@
-import type { AttackAssessment, AttackFinding, Confidence, ForgeRunResult } from "./types";
+import type {
+  AttackAssessment,
+  AttackFinding,
+  Confidence,
+  ForgeRunResult,
+} from "./types";
 
 /**
  * Produces a human-readable one-line verdict summary based on the assessment confirmation status and finding count.
@@ -7,7 +12,10 @@ import type { AttackAssessment, AttackFinding, Confidence, ForgeRunResult } from
  * @param findings - Array of attack findings used to determine the count in the summary.
  * @returns A single-sentence verdict summary string.
  */
-export function describeVerdictSummary(assessment: AttackAssessment, findings: AttackFinding[]): string {
+export function describeVerdictSummary(
+  assessment: AttackAssessment,
+  findings: AttackFinding[],
+): string {
   const count = findings.length;
   const noun = count === 1 ? "vulnerability was" : "vulnerabilities were";
   switch (assessment.confirmationStatus) {
@@ -32,11 +40,14 @@ export function describeVerdictSummary(assessment: AttackAssessment, findings: A
  * @param forgeRun - The Forge run result, or undefined if Forge was not executed.
  * @returns Descriptive string explaining the Forge execution outcome.
  */
-export function interpretForgeResult(forgeRun: ForgeRunResult | undefined): string {
+export function interpretForgeResult(
+  forgeRun: ForgeRunResult | undefined,
+): string {
   if (!forgeRun) return "Forge was not run in this analysis.";
   const s = forgeRun.summary;
   if (forgeRun.ok) {
-    if (s) return `All tests passed — ${s.passed} passed, ${s.failed} failed. If the scaffold test passed, the vulnerability is still exploitable.`;
+    if (s)
+      return `All tests passed — ${s.passed} passed, ${s.failed} failed. If the scaffold test passed, the vulnerability is still exploitable.`;
     return "Forge completed successfully.";
   }
   if (s && s.failed > 0) {
@@ -55,10 +66,17 @@ export function interpretForgeResult(forgeRun: ForgeRunResult | undefined): stri
  * @param decision - The assessment decision (fix-now, investigate, review, or no-action).
  * @returns Severity label string.
  */
-export function deriveSeverity(confidence: Confidence, decision: AttackAssessment["decision"]): string {
+export function deriveSeverity(
+  confidence: Confidence,
+  decision: AttackAssessment["decision"],
+): string {
   if (confidence === "high" && decision === "fix-now") return "CRITICAL";
   if (confidence === "high") return "HIGH";
-  if (confidence === "medium" && (decision === "fix-now" || decision === "investigate")) return "MEDIUM";
+  if (
+    confidence === "medium" &&
+    (decision === "fix-now" || decision === "investigate")
+  )
+    return "MEDIUM";
   if (confidence === "low") return "LOW";
   return "INFORMATIONAL";
 }
@@ -69,7 +87,9 @@ export function deriveSeverity(confidence: Confidence, decision: AttackAssessmen
  * @param confirmationStatus - The confirmation status from the attack assessment.
  * @returns Human-readable instruction string for the next step.
  */
-export function describeNextStep(confirmationStatus: AttackAssessment["confirmationStatus"]): string {
+export function describeNextStep(
+  confirmationStatus: AttackAssessment["confirmationStatus"],
+): string {
   switch (confirmationStatus) {
     case "confirmed-by-execution":
       return "Harden the affected contract path and add a regression test that preserves the reproduced proof.";
@@ -90,7 +110,9 @@ export function describeNextStep(confirmationStatus: AttackAssessment["confirmat
  * @param decision - The assessment decision (fix-now, investigate, review, or no-action).
  * @returns Short phrase describing what to do (e.g., "fix this issue now").
  */
-export function describeDecision(decision: AttackAssessment["decision"]): string {
+export function describeDecision(
+  decision: AttackAssessment["decision"],
+): string {
   switch (decision) {
     case "fix-now":
       return "fix this issue now";
@@ -114,7 +136,7 @@ export function describeDecision(decision: AttackAssessment["decision"]): string
 export function formatExecutionSummaryBlock(
   forgeRun: ForgeRunResult | undefined,
   generatedTestsInRun: number,
-  note: string
+  note: string,
 ): string {
   if (!forgeRun) {
     return `## Execution Result
@@ -131,7 +153,9 @@ export function formatExecutionSummaryBlock(
 - Exit code: ${forgeRun.exitCode}
 - Generated tests in this run: ${generatedTestsInRun}
 - Overall Forge totals: ${
-    forgeRun.summary ? `${forgeRun.summary.passed} passed, ${forgeRun.summary.failed} failed, ${forgeRun.summary.skipped} skipped` : "not parsed from Forge output"
+    forgeRun.summary
+      ? `${forgeRun.summary.passed} passed, ${forgeRun.summary.failed} failed, ${forgeRun.summary.skipped} skipped`
+      : "not parsed from Forge output"
   }
 - Note: ${note}
 `;

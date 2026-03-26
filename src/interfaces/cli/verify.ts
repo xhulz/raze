@@ -1,7 +1,7 @@
 import path from "node:path";
-import { verifyFixes } from "../../core/verifier";
 import { ensureFoundryProject } from "../../core/planner";
-import { success, info, warn } from "../../utils/logger";
+import { verifyFixes } from "../../core/verifier";
+import { info, success, warn } from "../../utils/logger";
 
 /**
  * Executes the CLI verify command, running proof and regression tests and printing verdicts.
@@ -11,13 +11,15 @@ import { success, info, warn } from "../../utils/logger";
  */
 export async function runVerifyCommand(
   projectRoot: string,
-  options: { contract?: string; offline?: boolean }
+  options: { contract?: string; offline?: boolean },
 ): Promise<void> {
   await ensureFoundryProject(projectRoot);
   const result = await verifyFixes(projectRoot, options);
 
   if (result.overallVerdict === "no-scaffolds") {
-    warn("No scaffolds found. Run `raze fuzz` first to generate proof scaffolds.");
+    warn(
+      "No scaffolds found. Run `raze fuzz` first to generate proof scaffolds.",
+    );
     return;
   }
 

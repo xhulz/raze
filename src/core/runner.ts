@@ -1,4 +1,3 @@
-import path from "node:path";
 import { execFileSafe } from "../utils/exec";
 import type { ForgeRunResult } from "./types";
 
@@ -9,7 +8,9 @@ import type { ForgeRunResult } from "./types";
  * @returns Parsed summary object, or undefined if the summary line is not found.
  */
 function parseForgeSummary(stdout: string): ForgeRunResult["summary"] {
-  const summaryMatch = stdout.match(/(\d+)\s+passed;\s+(\d+)\s+failed;\s+(\d+)\s+skipped/);
+  const summaryMatch = stdout.match(
+    /(\d+)\s+passed;\s+(\d+)\s+failed;\s+(\d+)\s+skipped/,
+  );
   if (!summaryMatch) {
     return undefined;
   }
@@ -17,7 +18,7 @@ function parseForgeSummary(stdout: string): ForgeRunResult["summary"] {
   return {
     passed: Number(summaryMatch[1]),
     failed: Number(summaryMatch[2]),
-    skipped: Number(summaryMatch[3])
+    skipped: Number(summaryMatch[3]),
   };
 }
 
@@ -28,11 +29,22 @@ function parseForgeSummary(stdout: string): ForgeRunResult["summary"] {
  * @param options - Optional flags for offline mode, test name match pattern, and file path match pattern.
  * @returns Forge run result including exit code, stdout/stderr, and parsed test summary.
  */
-export async function runForgeTests(projectRoot: string, options: { offline?: boolean; matchTest?: string; matchPath?: string } = {}): Promise<ForgeRunResult> {
+export async function runForgeTests(
+  projectRoot: string,
+  options: { offline?: boolean; matchTest?: string; matchPath?: string } = {},
+): Promise<ForgeRunResult> {
   const matchTest = options.matchTest ?? "proof_scaffold";
-  const args = ["test", "--match-test", matchTest, ...(options.matchPath ? ["--match-path", options.matchPath] : []), ...(options.offline ? ["--offline"] : []), "--root", projectRoot];
+  const args = [
+    "test",
+    "--match-test",
+    matchTest,
+    ...(options.matchPath ? ["--match-path", options.matchPath] : []),
+    ...(options.offline ? ["--offline"] : []),
+    "--root",
+    projectRoot,
+  ];
   const result = await execFileSafe("forge", args, {
-    cwd: projectRoot
+    cwd: projectRoot,
   });
 
   return {
@@ -41,6 +53,6 @@ export async function runForgeTests(projectRoot: string, options: { offline?: bo
     exitCode: result.exitCode,
     stdout: result.stdout,
     stderr: result.stderr,
-    summary: parseForgeSummary(result.stdout)
+    summary: parseForgeSummary(result.stdout),
   };
 }

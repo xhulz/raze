@@ -1,4 +1,8 @@
-import type { AttackAgent, AttackFinding, ContractAnalysis } from "../core/types";
+import type {
+  AttackAgent,
+  AttackFinding,
+  ContractAnalysis,
+} from "../core/types";
 
 /**
  * Detects flash loan attack surfaces by identifying loan interfaces, callback functions, and missing balance invariant checks.
@@ -25,8 +29,15 @@ export class FlashLoanAgent implements AttackAgent {
       input.inheritedSignals.includes("Aave") ||
       input.inheritedSignals.includes("dYdX");
 
-    const callbackFunctions = ["onFlashLoan", "executeOperation", "callFunction", "receiveFlashLoan"];
-    const hasCallbackFunction = input.functions.some((name) => callbackFunctions.includes(name));
+    const callbackFunctions = [
+      "onFlashLoan",
+      "executeOperation",
+      "callFunction",
+      "receiveFlashLoan",
+    ];
+    const hasCallbackFunction = input.functions.some((name) =>
+      callbackFunctions.includes(name),
+    );
 
     const hasCallSite =
       input.source.match(/\.flashLoan\s*\(/) !== null ||
@@ -35,7 +46,11 @@ export class FlashLoanAgent implements AttackAgent {
 
     const hasGuard = input.source.includes("nonReentrant");
 
-    const signalCount = [hasInterfaceSignal, hasCallbackFunction, hasCallSite].filter(Boolean).length;
+    const signalCount = [
+      hasInterfaceSignal,
+      hasCallbackFunction,
+      hasCallSite,
+    ].filter(Boolean).length;
 
     if (signalCount >= 2) {
       const confidence = !hasGuard && signalCount === 3 ? "high" : "medium";
@@ -49,7 +64,9 @@ export class FlashLoanAgent implements AttackAgent {
         suggestedTest:
           "Deploy a MockFlashLender that invokes the target callback. Inside the callback, call the vulnerable state-mutating function and assert that balances diverge from the pre-loan baseline after the callback completes.",
         contract: input.contractName,
-        functions: input.functions.filter((name) => callbackFunctions.includes(name))
+        functions: input.functions.filter((name) =>
+          callbackFunctions.includes(name),
+        ),
       });
     } else if (signalCount === 1) {
       findings.push({
@@ -57,10 +74,14 @@ export class FlashLoanAgent implements AttackAgent {
         confidence: "low",
         description:
           "Weak flash loan signal detected. Contract may interact with a flash loan flow but evidence is incomplete.",
-        attackVector: "Potential flash loan callback without repayment invariant.",
-        suggestedTest: "Review the callback entry point for missing balance invariant checks before and after repayment.",
+        attackVector:
+          "Potential flash loan callback without repayment invariant.",
+        suggestedTest:
+          "Review the callback entry point for missing balance invariant checks before and after repayment.",
         contract: input.contractName,
-        functions: input.functions.filter((name) => callbackFunctions.includes(name))
+        functions: input.functions.filter((name) =>
+          callbackFunctions.includes(name),
+        ),
       });
     }
 

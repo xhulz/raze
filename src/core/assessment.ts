@@ -1,4 +1,11 @@
-import type { AttackAssessment, CrossContractFinding, GeneratedTest, ValidatedAttackPlan, ForgeRunResult, AttackFinding } from "./types";
+import type {
+  AttackAssessment,
+  AttackFinding,
+  CrossContractFinding,
+  ForgeRunResult,
+  GeneratedTest,
+  ValidatedAttackPlan,
+} from "./types";
 
 /** Internal input shape for building an attack assessment. */
 interface AssessableResult {
@@ -22,8 +29,12 @@ function canExecutionConfirm(result: AssessableResult): boolean {
     result.generatedTests.every(
       (test) =>
         test.findingType !== "reentrancy" ||
-        (test.source.includes('require(attacker.reentryCount() == 2, "reentrant callback was not observed")') &&
-          test.source.includes('require(address(attacker).balance > 1 ether, "attacker did not extract excess value")'))
+        (test.source.includes(
+          'require(attacker.reentryCount() == 2, "reentrant callback was not observed")',
+        ) &&
+          test.source.includes(
+            'require(address(attacker).balance > 1 ether, "attacker did not extract excess value")',
+          )),
     )
   );
 }
@@ -34,10 +45,18 @@ function canExecutionConfirm(result: AssessableResult): boolean {
  * @param result - Assessable input containing findings, validated plans, generated tests, and optional execution results.
  * @returns Assessment with confirmation status, decision, reasoning, and interpretation.
  */
-export function buildAttackAssessment(result: AssessableResult): AttackAssessment {
-  const findingStatus = result.findings.length > 0 ? "heuristic-findings" : "no-findings";
-  const testStatus = result.generatedTests.length > 0 ? "proof-scaffolds-generated" : "no-tests";
-  const executionStatus = result.forgeRun ? (result.forgeRun.ok ? "forge-passed" : "forge-failed") : "not-run";
+export function buildAttackAssessment(
+  result: AssessableResult,
+): AttackAssessment {
+  const findingStatus =
+    result.findings.length > 0 ? "heuristic-findings" : "no-findings";
+  const testStatus =
+    result.generatedTests.length > 0 ? "proof-scaffolds-generated" : "no-tests";
+  const executionStatus = result.forgeRun
+    ? result.forgeRun.ok
+      ? "forge-passed"
+      : "forge-failed"
+    : "not-run";
   let confirmationStatus: AttackAssessment["confirmationStatus"] =
     result.generatedTests.length === 0
       ? result.validatedPlans.length > 0
@@ -55,14 +74,19 @@ export function buildAttackAssessment(result: AssessableResult): AttackAssessmen
             : "executed-scaffold"
           : "validated-plan";
 
-  let interpretation = "No concrete risk signals were detected by the current deterministic heuristics.";
+  let interpretation =
+    "No concrete risk signals were detected by the current deterministic heuristics.";
   if (confirmationStatus === "confirmed-by-execution") {
     interpretation =
       "A validated attack plan was materialized into a proof scaffold and the resulting Forge run reproduced the targeted unsafe behavior. Treat this as execution-backed confirmation for the supported scaffold family.";
   } else if (confirmationStatus === "executed-scaffold") {
     interpretation =
       "A validated attack plan was materialized and the scaffold executed successfully, but this scaffold family is not strong enough to claim exploit confirmation by itself. Treat the result as an executed proof scaffold, not a fully confirmed exploit.";
-  } else if (findingStatus === "heuristic-findings" && testStatus === "proof-scaffolds-generated" && executionStatus === "forge-failed") {
+  } else if (
+    findingStatus === "heuristic-findings" &&
+    testStatus === "proof-scaffolds-generated" &&
+    executionStatus === "forge-failed"
+  ) {
     interpretation =
       "Heuristic findings were identified and proof scaffolds were generated, but Forge execution failed. Review the generated tests and execution output before drawing conclusions.";
   } else if (confirmationStatus === "validated-plan") {
@@ -79,12 +103,17 @@ export function buildAttackAssessment(result: AssessableResult): AttackAssessmen
   if (confirmationStatus === "confirmed-by-execution") {
     decision = "fix-now";
     decisionReason = "Raze reproduced the unsafe behavior in execution.";
-  } else if (confirmationStatus === "executed-scaffold" || confirmationStatus === "validated-plan") {
+  } else if (
+    confirmationStatus === "executed-scaffold" ||
+    confirmationStatus === "validated-plan"
+  ) {
     decision = "investigate";
-    decisionReason = "There is validated attack evidence, but the issue is not fully confirmed by execution yet.";
+    decisionReason =
+      "There is validated attack evidence, but the issue is not fully confirmed by execution yet.";
   } else if (confirmationStatus === "suspected-only") {
     decision = "review";
-    decisionReason = "Heuristic findings suggest risk, but no validated execution-backed proof exists yet.";
+    decisionReason =
+      "Heuristic findings suggest risk, but no validated execution-backed proof exists yet.";
   }
 
   // Cross-contract upgrade pass: findings referencing the target contract upgrade the decision
@@ -92,17 +121,19 @@ export function buildAttackAssessment(result: AssessableResult): AttackAssessmen
     (f) =>
       !result.targetContractName ||
       f.callerContract === result.targetContractName ||
-      f.calleeContract === result.targetContractName
+      f.calleeContract === result.targetContractName,
   );
 
   if (relevantCrossContract.length > 0) {
-    const highOrMedium = relevantCrossContract.some((f) => f.confidence === "high" || f.confidence === "medium");
+    const highOrMedium = relevantCrossContract.some(
+      (f) => f.confidence === "high" || f.confidence === "medium",
+    );
     if (decision === "no-action") {
       decision = "review";
-      decisionReason = `No direct findings, but cross-contract risk signal detected: ${relevantCrossContract[0]!.callerContract} → ${relevantCrossContract[0]!.calleeContract}.${relevantCrossContract[0]!.calleeFunction}().`;
+      decisionReason = `No direct findings, but cross-contract risk signal detected: ${relevantCrossContract[0]?.callerContract} → ${relevantCrossContract[0]?.calleeContract}.${relevantCrossContract[0]?.calleeFunction}().`;
     } else if (decision === "review" && highOrMedium) {
       decision = "investigate";
-      decisionReason += ` Cross-contract risk signal: ${relevantCrossContract[0]!.callerContract} → ${relevantCrossContract[0]!.calleeContract}.${relevantCrossContract[0]!.calleeFunction}().`;
+      decisionReason += ` Cross-contract risk signal: ${relevantCrossContract[0]?.callerContract} → ${relevantCrossContract[0]?.calleeContract}.${relevantCrossContract[0]?.calleeFunction}().`;
     }
     if (confirmationStatus === "none") {
       confirmationStatus = "suspected-only";
@@ -116,6 +147,6 @@ export function buildAttackAssessment(result: AssessableResult): AttackAssessmen
     confirmationStatus,
     decision,
     decisionReason,
-    interpretation
+    interpretation,
   };
 }

@@ -2,18 +2,21 @@
 import path from "node:path";
 import { Command } from "commander";
 import { loadEnv } from "../../utils/env";
-import { runInitCommand } from "./init";
+import { failure } from "../../utils/logger";
+import { runDeveloperFuzzCommand } from "./devFuzz";
 import { runDoctorCommand } from "./doctor";
 import { runFuzzCommand } from "./fuzz";
-import { runDeveloperFuzzCommand } from "./devFuzz";
+import { runInitCommand } from "./init";
 import { runVerifyCommand } from "./verify";
-import { failure } from "../../utils/logger";
 
 loadEnv();
 
 const program = new Command();
 
-program.name("raze").description("MCP-first smart contract attack engine").version("0.1.0");
+program
+  .name("raze")
+  .description("MCP-first smart contract attack engine")
+  .version("0.1.0");
 
 program
   .command("init")

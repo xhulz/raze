@@ -10,7 +10,7 @@ const AGENTS: Record<string, AttackAgent> = {
   "access-control": new AccessControlAgent(),
   arithmetic: new ArithmeticAgent(),
   "flash-loan": new FlashLoanAgent(),
-  "price-manipulation": new PriceManipulationAgent()
+  "price-manipulation": new PriceManipulationAgent(),
 };
 
 /**

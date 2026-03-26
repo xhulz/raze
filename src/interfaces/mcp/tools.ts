@@ -1,35 +1,36 @@
 import { z } from "zod";
-import { analyzeContract } from "../../core/planner";
-import { runAttackPipeline } from "../../core/pipeline";
+import { runAttackAgents } from "../../core/attacker";
+import { runAttackSuite } from "../../core/attackSuite";
 import { generateDeveloperFuzzTests } from "../../core/developerFuzz";
 import { suggestHardening } from "../../core/hardening";
-import { runAttackSuite } from "../../core/attackSuite";
-import { generateProofScaffolds } from "../../core/tester";
-import { runAttackAgents } from "../../core/attacker";
 import { inspectProject, validateAttackPlan } from "../../core/orchestrator";
+import { runAttackPipeline } from "../../core/pipeline";
+import { analyzeContract } from "../../core/planner";
 import { writeReport } from "../../core/reporter";
+import { generateProofScaffolds } from "../../core/tester";
 import { verifyFixes } from "../../core/verifier";
 import {
-  projectSchema,
-  validateAttackPlanSchema,
   attackSchemaMcp,
   attackSuiteSchemaMcp,
   developerFuzzSchema,
+  projectSchema,
   reportWriteSchema,
-  verifySchema
+  validateAttackPlanSchema,
+  verifySchema,
 } from "./schemas";
 
 /** Registry of all Raze MCP tool definitions with schemas and execute handlers. */
 export const toolDefinitions = {
   raze_inspect_project: {
-    description: "Scan all contracts in a Foundry project and return the full inventory, dependency graph, and cross-contract risk signals. Use this first when you don't know which contract to target.",
+    description:
+      "Scan all contracts in a Foundry project and return the full inventory, dependency graph, and cross-contract risk signals. Use this first when you don't know which contract to target.",
     schema: z.object({
-      projectRoot: z.string().min(1)
+      projectRoot: z.string().min(1),
     }),
     async execute(input: unknown) {
       const parsed = z.object({ projectRoot: z.string().min(1) }).parse(input);
       return inspectProject(parsed.projectRoot);
-    }
+    },
   },
   raze_attack: {
     description: "Execute a single AI-authored attack plan over a contract.",
@@ -42,44 +43,48 @@ export const toolDefinitions = {
         runForge: parsed.runForge,
         offline: parsed.offline,
         attackPlan: parsed.attackPlan,
-        executionContext: "mcp"
+        executionContext: "mcp",
       });
-    }
+    },
   },
   raze_generate_developer_fuzz_tests: {
-    description: "Generate broad deterministic per-function Foundry fuzz tests for normal contract development work.",
+    description:
+      "Generate broad deterministic per-function Foundry fuzz tests for normal contract development work.",
     schema: developerFuzzSchema,
     async execute(input: unknown) {
       const parsed = developerFuzzSchema.parse(input);
       return generateDeveloperFuzzTests(parsed);
-    }
+    },
   },
   raze_analyze_contract: {
-    description: "Deep-analyze a single contract with attack agents and return heuristic findings per vulnerability class. Use this after you know which contract to target.",
+    description:
+      "Deep-analyze a single contract with attack agents and return heuristic findings per vulnerability class. Use this after you know which contract to target.",
     schema: projectSchema,
     async execute(input: unknown) {
       const parsed = projectSchema.parse(input);
       const analysis = await analyzeContract({
         projectRoot: parsed.projectRoot,
         contractSelector: parsed.contractSelector,
-        executionContext: "mcp"
+        executionContext: "mcp",
       });
       return {
         analysis,
-        heuristicFindings: runAttackAgents(analysis)
+        heuristicFindings: runAttackAgents(analysis),
       };
-    }
+    },
   },
   raze_suggest_hardening: {
-    description: "Suggest security-focused hardening and follow-up tests after analyzing a contract.",
+    description:
+      "Suggest security-focused hardening and follow-up tests after analyzing a contract.",
     schema: projectSchema,
     async execute(input: unknown) {
       const parsed = projectSchema.parse(input);
       return suggestHardening(parsed);
-    }
+    },
   },
   raze_validate_attack_plan: {
-    description: "Validate an AI-authored attack or proof plan against real project symbols and normalize it into a scaffold-ready shape.",
+    description:
+      "Validate an AI-authored attack or proof plan against real project symbols and normalize it into a scaffold-ready shape.",
     schema: validateAttackPlanSchema,
     async execute(input: unknown) {
       const parsed = validateAttackPlanSchema.parse(input);
@@ -87,16 +92,17 @@ export const toolDefinitions = {
         {
           projectRoot: parsed.projectRoot,
           contractSelector: parsed.contractSelector,
-          executionContext: "mcp"
+          executionContext: "mcp",
         },
         parsed.attackPlan,
-        "ai-authored"
+        "ai-authored",
       );
       return result;
-    }
+    },
   },
   raze_generate_proof_scaffold: {
-    description: "Generate deterministic Foundry proof scaffolds from a validated or AI-authored attack plan.",
+    description:
+      "Generate deterministic Foundry proof scaffolds from a validated or AI-authored attack plan.",
     schema: validateAttackPlanSchema,
     async execute(input: unknown) {
       const parsed = validateAttackPlanSchema.parse(input);
@@ -104,21 +110,24 @@ export const toolDefinitions = {
         {
           projectRoot: parsed.projectRoot,
           contractSelector: parsed.contractSelector,
-          executionContext: "mcp"
+          executionContext: "mcp",
         },
         parsed.attackPlan,
-        "ai-authored"
+        "ai-authored",
       );
-      const tests = await generateProofScaffolds(parsed.projectRoot, [validatedPlan]);
+      const tests = await generateProofScaffolds(parsed.projectRoot, [
+        validatedPlan,
+      ]);
       return {
         analysis,
         validatedPlan,
-        tests
+        tests,
       };
-    }
+    },
   },
   raze_run_attack_suite: {
-    description: "Run an AI-authored multi-plan attack suite across the target contract.",
+    description:
+      "Run an AI-authored multi-plan attack suite across the target contract.",
     schema: attackSuiteSchemaMcp,
     async execute(input: unknown) {
       const parsed = attackSuiteSchemaMcp.parse(input);
@@ -128,19 +137,21 @@ export const toolDefinitions = {
         offline: parsed.offline,
         runForge: parsed.runForge,
         attackPlans: parsed.attackPlans,
-        executionContext: "mcp"
+        executionContext: "mcp",
       });
-    }
+    },
   },
   raze_write_report: {
-    description: "Persist a structured Raze report from validated plans, generated proof scaffolds, and optional forge results.",
+    description:
+      "Persist a structured Raze report from validated plans, generated proof scaffolds, and optional forge results.",
     schema: reportWriteSchema,
     async execute(input: unknown) {
       const parsed = reportWriteSchema.parse(input);
       const analysis = await analyzeContract({
         projectRoot: parsed.projectRoot,
-        contractSelector: parsed.contractSelector ?? parsed.validatedPlans[0]?.contractName,
-        executionContext: "mcp"
+        contractSelector:
+          parsed.contractSelector ?? parsed.validatedPlans[0]?.contractName,
+        executionContext: "mcp",
       });
       const reportPath = await writeReport({
         projectRoot: parsed.projectRoot,
@@ -153,29 +164,38 @@ export const toolDefinitions = {
         hypothesisStatus: parsed.hypothesisStatus,
         proofStatus: parsed.proofStatus,
         assessment: {
-          findingStatus: parsed.findings.length > 0 ? "heuristic-findings" : "no-findings",
-          testStatus: parsed.generatedTests.length > 0 ? "proof-scaffolds-generated" : "no-tests",
-          executionStatus: parsed.forgeRun ? (parsed.forgeRun.ok ? "forge-passed" : "forge-failed") : "not-run",
+          findingStatus:
+            parsed.findings.length > 0 ? "heuristic-findings" : "no-findings",
+          testStatus:
+            parsed.generatedTests.length > 0
+              ? "proof-scaffolds-generated"
+              : "no-tests",
+          executionStatus: parsed.forgeRun
+            ? parsed.forgeRun.ok
+              ? "forge-passed"
+              : "forge-failed"
+            : "not-run",
           confirmationStatus: parsed.confirmationStatus,
           decision: parsed.decision,
           decisionReason: parsed.decisionReason,
-          interpretation: parsed.interpretation
-        }
+          interpretation: parsed.interpretation,
+        },
       });
       return { reportPath };
-    }
+    },
   },
   raze_verify_fix: {
-    description: "Run proof and regression tests to verify a developer's fix is effective. Returns per-contract verdict: fix-verified, fix-incomplete, or error.",
+    description:
+      "Run proof and regression tests to verify a developer's fix is effective. Returns per-contract verdict: fix-verified, fix-incomplete, or error.",
     schema: verifySchema,
     async execute(input: unknown) {
       const parsed = verifySchema.parse(input);
       return verifyFixes(parsed.projectRoot, {
         contract: parsed.contractSelector,
-        offline: parsed.offline
+        offline: parsed.offline,
       });
-    }
-  }
+    },
+  },
 } as const;
 
 /** Union type of all registered Raze MCP tool names. */

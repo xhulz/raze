@@ -1,7 +1,11 @@
-import path from "node:path";
 import { promises as fs } from "node:fs";
+import path from "node:path";
 import { runForgeTests } from "./runner";
-import type { ForgeRunResult, VerifyContractResult, VerifyResult } from "./types";
+import type {
+  ForgeRunResult,
+  VerifyContractResult,
+  VerifyResult,
+} from "./types";
 
 /**
  * Interprets proof and regression Forge runs to determine whether a fix has been verified.
@@ -12,7 +16,7 @@ import type { ForgeRunResult, VerifyContractResult, VerifyResult } from "./types
  */
 export function interpretVerifyResults(
   proofRun: ForgeRunResult,
-  regressionRun: ForgeRunResult
+  regressionRun: ForgeRunResult,
 ): { verdict: VerifyContractResult["verdict"]; reason: string } {
   if (!proofRun.summary || !regressionRun.summary) {
     return { verdict: "error", reason: "Forge output could not be parsed." };
@@ -20,22 +24,39 @@ export function interpretVerifyResults(
 
   const proofStillPasses = proofRun.summary.passed > 0;
   const regressionFails = regressionRun.summary.failed > 0;
-  const regressionRan = proofRun.summary.passed + proofRun.summary.failed + regressionRun.summary.passed + regressionRun.summary.failed > 0;
+  const regressionRan =
+    proofRun.summary.passed +
+      proofRun.summary.failed +
+      regressionRun.summary.passed +
+      regressionRun.summary.failed >
+    0;
 
   if (!regressionRan) {
     return { verdict: "error", reason: "No tests were executed." };
   }
 
-  if (!proofStillPasses && regressionRun.summary.passed > 0 && !regressionFails) {
-    return { verdict: "fix-verified", reason: "Proof scaffold fails (bug gone) and regression passes (fix holds)." };
+  if (
+    !proofStillPasses &&
+    regressionRun.summary.passed > 0 &&
+    !regressionFails
+  ) {
+    return {
+      verdict: "fix-verified",
+      reason:
+        "Proof scaffold fails (bug gone) and regression passes (fix holds).",
+    };
   }
 
   const reasons: string[] = [];
   if (proofStillPasses) {
-    reasons.push(`Proof scaffold still passes (${proofRun.summary.passed} passed) — vulnerability still exploitable.`);
+    reasons.push(
+      `Proof scaffold still passes (${proofRun.summary.passed} passed) — vulnerability still exploitable.`,
+    );
   }
   if (regressionFails) {
-    reasons.push(`Regression test fails (${regressionRun.summary.failed} failed) — fix not effective.`);
+    reasons.push(
+      `Regression test fails (${regressionRun.summary.failed} failed) — fix not effective.`,
+    );
   }
   if (reasons.length === 0 && regressionRun.summary.passed === 0) {
     reasons.push("No regression tests found — cannot confirm fix.");
@@ -51,9 +72,15 @@ export function interpretVerifyResults(
  * @param contractFilter - Optional contract name to filter discovered scaffolds.
  * @returns Map from contract name to array of scaffold file paths.
  */
-async function discoverScaffolds(projectRoot: string, contractFilter?: string): Promise<Map<string, string[]>> {
+async function discoverScaffolds(
+  projectRoot: string,
+  contractFilter?: string,
+): Promise<Map<string, string[]>> {
   const testDir = path.join(projectRoot, "test", "raze");
-  const exists = await fs.access(testDir).then(() => true).catch(() => false);
+  const exists = await fs
+    .access(testDir)
+    .then(() => true)
+    .catch(() => false);
   if (!exists) return new Map();
 
   const files = await fs.readdir(testDir);
@@ -78,7 +105,8 @@ async function discoverScaffolds(projectRoot: string, contractFilter?: string): 
  * @returns Markdown string for the verification report.
  */
 function writeVerifyReport(result: VerifyResult): string {
-  const overallLabel = result.overallVerdict === "all-fixed" ? "ALL FIXED" : "INCOMPLETE";
+  const overallLabel =
+    result.overallVerdict === "all-fixed" ? "ALL FIXED" : "INCOMPLETE";
 
   const table = result.contracts
     .map((c) => {
@@ -97,7 +125,12 @@ function writeVerifyReport(result: VerifyResult): string {
 
   const details = result.contracts
     .map((c) => {
-      const label = c.verdict === "fix-verified" ? "FIX VERIFIED" : c.verdict === "fix-incomplete" ? "FIX INCOMPLETE" : "ERROR";
+      const label =
+        c.verdict === "fix-verified"
+          ? "FIX VERIFIED"
+          : c.verdict === "fix-incomplete"
+            ? "FIX INCOMPLETE"
+            : "ERROR";
       return `### ${c.contractName}: ${label}\n\n${c.reason}`;
     })
     .join("\n\n");
@@ -129,7 +162,7 @@ _Verified at ${new Date().toISOString()}_
  */
 export async function verifyFixes(
   projectRoot: string,
-  options: { contract?: string; offline?: boolean } = {}
+  options: { contract?: string; offline?: boolean } = {},
 ): Promise<VerifyResult> {
   const scaffolds = await discoverScaffolds(projectRoot, options.contract);
 
@@ -139,10 +172,14 @@ export async function verifyFixes(
       projectRoot,
       contracts: [],
       overallVerdict: "no-scaffolds",
-      reportPath
+      reportPath,
     };
     await fs.mkdir(path.dirname(reportPath), { recursive: true });
-    await fs.writeFile(reportPath, "# Raze Verification Report\n\nNo scaffolds found. Run `raze fuzz` first.\n", "utf8");
+    await fs.writeFile(
+      reportPath,
+      "# Raze Verification Report\n\nNo scaffolds found. Run `raze fuzz` first.\n",
+      "utf8",
+    );
     return result;
   }
 
@@ -153,16 +190,23 @@ export async function verifyFixes(
     const proofRun = await runForgeTests(projectRoot, {
       matchTest: "proof_scaffold",
       matchPath,
-      offline: options.offline
+      offline: options.offline,
     });
     const regressionRun = await runForgeTests(projectRoot, {
       matchTest: "regression",
       matchPath,
-      offline: options.offline
+      offline: options.offline,
     });
 
     const { verdict, reason } = interpretVerifyResults(proofRun, regressionRun);
-    contracts.push({ contractName, scaffoldFiles: files, proofRun, regressionRun, verdict, reason });
+    contracts.push({
+      contractName,
+      scaffoldFiles: files,
+      proofRun,
+      regressionRun,
+      verdict,
+      reason,
+    });
   }
 
   let overallVerdict: VerifyResult["overallVerdict"];
@@ -175,7 +219,12 @@ export async function verifyFixes(
   }
 
   const reportPath = path.join(projectRoot, ".raze", "reports", "verify.md");
-  const verifyResult: VerifyResult = { projectRoot, contracts, overallVerdict, reportPath };
+  const verifyResult: VerifyResult = {
+    projectRoot,
+    contracts,
+    overallVerdict,
+    reportPath,
+  };
 
   await fs.mkdir(path.dirname(reportPath), { recursive: true });
   await fs.writeFile(reportPath, writeVerifyReport(verifyResult), "utf8");

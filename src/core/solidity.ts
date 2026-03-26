@@ -11,9 +11,12 @@ export interface PublicStateVariable {
   keyType?: string;
 }
 
-const FUNCTION_SIGNATURE_REGEX = /function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)/g;
-const PUBLIC_FUNCTION_SIGNATURE_REGEX = /function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)\s*(?:external|public)/g;
-const PUBLIC_STATE_REGEX = /(mapping\s*\(\s*([^=]+)=>\s*([^)]+)\)|[A-Za-z0-9_]+)\s+public\s+([A-Za-z_][A-Za-z0-9_]*)/g;
+const FUNCTION_SIGNATURE_REGEX =
+  /function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)/g;
+const PUBLIC_FUNCTION_SIGNATURE_REGEX =
+  /function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)\s*(?:external|public)/g;
+const PUBLIC_STATE_REGEX =
+  /(mapping\s*\(\s*([^=]+)=>\s*([^)]+)\)|[A-Za-z0-9_]+)\s+public\s+([A-Za-z_][A-Za-z0-9_]*)/g;
 const CONSTRUCTOR_REGEX = /constructor\s*\(([^)]*)\)/;
 
 /**
@@ -35,7 +38,7 @@ function parseSignatures(source: string, regex: RegExp): FunctionSignature[] {
           });
     return {
       name: match[1],
-      paramTypes
+      paramTypes,
     };
   });
 }
@@ -56,7 +59,9 @@ export function parseFunctionSignatures(source: string): FunctionSignature[] {
  * @param source - Raw Solidity source code string.
  * @returns Array of public/external function signatures with names and parameter types.
  */
-export function parsePublicFunctionSignatures(source: string): FunctionSignature[] {
+export function parsePublicFunctionSignatures(
+  source: string,
+): FunctionSignature[] {
   return parseSignatures(source, PUBLIC_FUNCTION_SIGNATURE_REGEX);
 }
 
@@ -66,11 +71,13 @@ export function parsePublicFunctionSignatures(source: string): FunctionSignature
  * @param source - Raw Solidity source code string.
  * @returns Array of public state variables with name, type, and optional mapping key type.
  */
-export function parsePublicStateVariables(source: string): PublicStateVariable[] {
+export function parsePublicStateVariables(
+  source: string,
+): PublicStateVariable[] {
   return [...source.matchAll(PUBLIC_STATE_REGEX)].map((match) => ({
     name: match[4],
     type: match[1].trim(),
-    keyType: match[2]?.trim()
+    keyType: match[2]?.trim(),
   }));
 }
 
@@ -82,18 +89,21 @@ export function parsePublicStateVariables(source: string): PublicStateVariable[]
  */
 export function parseConstructorArgs(source: string): string {
   const match = source.match(CONSTRUCTOR_REGEX);
-  if (!match || !match[1].trim()) return "";
-  const params = match[1].trim().split(",").map((param) => {
-    const tokens = param.trim().split(/\s+/);
-    const type = tokens[0];
-    if (type === "address") return "address(0)";
-    if (type.startsWith("address")) return "address(0)";
-    if (type === "bool") return "false";
-    if (type.startsWith("uint") || type.startsWith("int")) return "0";
-    if (type === "string") return '""';
-    if (type === "bytes") return '"0x"';
-    return "0";
-  });
+  if (!match?.[1].trim()) return "";
+  const params = match[1]
+    .trim()
+    .split(",")
+    .map((param) => {
+      const tokens = param.trim().split(/\s+/);
+      const type = tokens[0];
+      if (type === "address") return "address(0)";
+      if (type.startsWith("address")) return "address(0)";
+      if (type === "bool") return "false";
+      if (type.startsWith("uint") || type.startsWith("int")) return "0";
+      if (type === "string") return '""';
+      if (type === "bytes") return '"0x"';
+      return "0";
+    });
   return params.join(", ");
 }
 

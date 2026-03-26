@@ -1,9 +1,9 @@
-import path from "node:path";
 import { promises as fs } from "node:fs";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { ensureFoundryProject } from "../../core/planner";
 import { detectEnvironment } from "../../utils/detect";
 import { info, success, warn } from "../../utils/logger";
-import { ensureFoundryProject } from "../../core/planner";
 
 /**
  * Creates a file at the given path with the specified content, creating parent directories as needed.
@@ -11,7 +11,7 @@ import { ensureFoundryProject } from "../../core/planner";
  * @param filePath - Absolute path to the file.
  * @param content - Content to write.
  */
-async function ensureFile(filePath: string, content: string): Promise<void> {
+async function _ensureFile(filePath: string, content: string): Promise<void> {
   await fs.mkdir(path.dirname(filePath), { recursive: true });
   await fs.writeFile(filePath, content, "utf8");
 }
@@ -35,7 +35,13 @@ async function backupFile(filePath: string): Promise<string> {
  * @returns Absolute path to the package root.
  */
 function resolvePackageRoot(): string {
-  return path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
+  return path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "..",
+    "..",
+    "..",
+    "..",
+  );
 }
 
 /**
@@ -44,12 +50,17 @@ function resolvePackageRoot(): string {
  * @param projectRoot - Absolute path to the Foundry project root.
  * @returns Object with command and args for the MCP server entry.
  */
-function buildMcpEntry(projectRoot: string): { command: string; args: string[] } {
+function buildMcpEntry(projectRoot: string): {
+  command: string;
+  args: string[];
+} {
   void projectRoot;
   const packageRoot = resolvePackageRoot();
   return {
     command: "node",
-    args: [path.join(packageRoot, "dist", "src", "interfaces", "mcp", "server.js")]
+    args: [
+      path.join(packageRoot, "dist", "src", "interfaces", "mcp", "server.js"),
+    ],
   };
 }
 
@@ -59,7 +70,10 @@ function buildMcpEntry(projectRoot: string): { command: string; args: string[] }
  * @returns Environment label string, or null if the environment is unknown.
  */
 function currentEnvironmentLabel(): string | null {
-  if (process.env.CODEX_INTERNAL_ORIGINATOR_OVERRIDE === "codex_vscode" || process.env.__CFBundleIdentifier === "com.microsoft.VSCode") {
+  if (
+    process.env.CODEX_INTERNAL_ORIGINATOR_OVERRIDE === "codex_vscode" ||
+    process.env.__CFBundleIdentifier === "com.microsoft.VSCode"
+  ) {
     return "VS Code (Codex)";
   }
   if (process.env.CURSOR_TRACE_ID) {
@@ -78,8 +92,12 @@ function currentEnvironmentLabel(): string | null {
  * @param entry - The MCP server entry with command and args.
  */
 async function mergeMcpConfig(
-  target: { kind: "vscode" | "cursor" | "claude"; name: string; configPath: string },
-  entry: { command: string; args: string[] }
+  target: {
+    kind: "vscode" | "cursor" | "claude";
+    name: string;
+    configPath: string;
+  },
+  entry: { command: string; args: string[] },
 ): Promise<void> {
   let data: Record<string, unknown> = {};
   const exists = await fs
@@ -96,23 +114,30 @@ async function mergeMcpConfig(
   }
 
   if (target.kind === "vscode") {
-    const servers = ((data.servers as Record<string, unknown> | undefined) ?? {}) as Record<string, unknown>;
+    const servers = ((data.servers as Record<string, unknown> | undefined) ??
+      {}) as Record<string, unknown>;
     servers.raze = {
       type: "stdio",
       command: entry.command,
-      args: entry.args
+      args: entry.args,
     };
     data.servers = servers;
     if (!Array.isArray(data.inputs)) {
       data.inputs = [];
     }
   } else {
-    const mcpServers = ((data.mcpServers as Record<string, unknown> | undefined) ?? {}) as Record<string, unknown>;
+    const mcpServers = ((data.mcpServers as
+      | Record<string, unknown>
+      | undefined) ?? {}) as Record<string, unknown>;
     mcpServers.raze = entry;
     data.mcpServers = mcpServers;
   }
 
-  await fs.writeFile(target.configPath, `${JSON.stringify(data, null, 2)}\n`, "utf8");
+  await fs.writeFile(
+    target.configPath,
+    `${JSON.stringify(data, null, 2)}\n`,
+    "utf8",
+  );
 }
 
 /**
@@ -123,7 +148,9 @@ async function mergeMcpConfig(
 export async function runInitCommand(projectRoot: string): Promise<void> {
   const env = await detectEnvironment();
   await ensureFoundryProject(projectRoot);
-  await fs.mkdir(path.join(projectRoot, ".raze", "reports"), { recursive: true });
+  await fs.mkdir(path.join(projectRoot, ".raze", "reports"), {
+    recursive: true,
+  });
 
   const mcpEntry = buildMcpEntry(projectRoot);
   for (const target of env.supportedMcpTargets) {
@@ -148,11 +175,13 @@ export async function runInitCommand(projectRoot: string): Promise<void> {
   }
 
   if (!env.forge.ok) {
-    warn("Foundry was not detected. Install forge before running fuzz execution.");
+    warn(
+      "Foundry was not detected. Install forge before running fuzz execution.",
+    );
   }
 
   success("Environment ready");
   info("");
-  info('You can now ask:');
+  info("You can now ask:");
   info('"analyze this smart contract"');
 }

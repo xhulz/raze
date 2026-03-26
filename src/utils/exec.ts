@@ -19,7 +19,7 @@ export interface ExecResult {
 export function execFileSafe(
   command: string,
   args: string[],
-  options: { cwd?: string } = {}
+  options: { cwd?: string } = {},
 ): Promise<ExecResult> {
   return new Promise((resolve) => {
     execFile(command, args, { cwd: options.cwd }, (error, stdout, stderr) => {
@@ -28,7 +28,7 @@ export function execFileSafe(
           ok: false,
           exitCode: typeof error.code === "number" ? error.code : 1,
           stdout: stdout ?? "",
-          stderr: stderr || error.message
+          stderr: stderr || error.message,
         });
         return;
       }
@@ -37,7 +37,7 @@ export function execFileSafe(
         ok: true,
         exitCode: 0,
         stdout: stdout ?? "",
-        stderr: stderr ?? ""
+        stderr: stderr ?? "",
       });
     });
   });

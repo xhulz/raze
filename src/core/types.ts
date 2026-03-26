@@ -1,11 +1,21 @@
 /** Supported vulnerability class identifiers. */
-export type AttackType = "reentrancy" | "access-control" | "arithmetic" | "flash-loan" | "price-manipulation";
+export type AttackType =
+  | "reentrancy"
+  | "access-control"
+  | "arithmetic"
+  | "flash-loan"
+  | "price-manipulation";
 
 /** Finding confidence level. */
 export type Confidence = "low" | "medium" | "high";
 
 /** Assertion kind used to classify proof scaffold goals. */
-export type AssertionKind = "unauthorized-state-change" | "arithmetic-drift" | "reentrant-state-inconsistency" | "flash-loan-extraction" | "price-oracle-drift";
+export type AssertionKind =
+  | "unauthorized-state-change"
+  | "arithmetic-drift"
+  | "reentrant-state-inconsistency"
+  | "flash-loan-extraction"
+  | "price-oracle-drift";
 /** Origin of the contract analysis (heuristic or AI-orchestrated). */
 export type AnalysisSource = "heuristic" | "ai-orchestrated";
 /** Lifecycle status of an attack hypothesis. */
@@ -87,7 +97,11 @@ export interface GeneratedTest {
 export interface DeveloperFuzzPlan {
   contractName: string;
   functionName: string;
-  family: "success-path" | "input-boundary" | "access-sensitive" | "state-transition";
+  family:
+    | "success-path"
+    | "input-boundary"
+    | "access-sensitive"
+    | "state-transition";
   description: string;
 }
 
@@ -128,7 +142,12 @@ export interface AttackAssessment {
   findingStatus: "no-findings" | "heuristic-findings";
   testStatus: "no-tests" | "proof-scaffolds-generated";
   executionStatus: "not-run" | "forge-passed" | "forge-failed";
-  confirmationStatus: "none" | "suspected-only" | "validated-plan" | "executed-scaffold" | "confirmed-by-execution";
+  confirmationStatus:
+    | "none"
+    | "suspected-only"
+    | "validated-plan"
+    | "executed-scaffold"
+    | "confirmed-by-execution";
   decision: "fix-now" | "investigate" | "review" | "no-action";
   decisionReason: string;
   interpretation: string;

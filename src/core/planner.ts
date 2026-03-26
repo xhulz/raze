@@ -1,6 +1,12 @@
-import path from "node:path";
 import { promises as fs } from "node:fs";
-import type { AttackPipelineInput, AttackType, ContractAnalysis, ContractDependencyEdge, ContractDependencyGraph } from "./types";
+import path from "node:path";
+import type {
+  AttackPipelineInput,
+  AttackType,
+  ContractAnalysis,
+  ContractDependencyEdge,
+  ContractDependencyGraph,
+} from "./types";
 
 const CONTRACT_REGEX = /contract\s+([A-Za-z_][A-Za-z0-9_]*)/g;
 const FUNCTION_REGEX = /function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(/g;
@@ -16,7 +22,9 @@ export async function ensureFoundryProject(projectRoot: string): Promise<void> {
   try {
     await fs.access(foundryToml);
   } catch {
-    throw new Error(`Foundry project not detected at ${projectRoot}. Missing foundry.toml`);
+    throw new Error(
+      `Foundry project not detected at ${projectRoot}. Missing foundry.toml`,
+    );
   }
 }
 
@@ -26,7 +34,9 @@ export async function ensureFoundryProject(projectRoot: string): Promise<void> {
  * @param projectRoot - Absolute path to the Foundry project root.
  * @returns Sorted array of absolute paths to discovered .sol files.
  */
-export async function discoverContracts(projectRoot: string): Promise<string[]> {
+export async function discoverContracts(
+  projectRoot: string,
+): Promise<string[]> {
   await ensureFoundryProject(projectRoot);
   const srcDir = path.join(projectRoot, "src");
   const stack = [srcDir];
@@ -34,7 +44,9 @@ export async function discoverContracts(projectRoot: string): Promise<string[]> 
 
   while (stack.length > 0) {
     const current = stack.pop()!;
-    const entries = await fs.readdir(current, { withFileTypes: true }).catch(() => []);
+    const entries = await fs
+      .readdir(current, { withFileTypes: true })
+      .catch(() => []);
     for (const entry of entries) {
       const fullPath = path.join(current, entry.name);
       if (entry.isDirectory()) {
@@ -55,10 +67,15 @@ export async function discoverContracts(projectRoot: string): Promise<string[]> 
  * @param selector - Optional contract name or partial path to match against discovered contracts.
  * @returns Absolute path to the matched contract file.
  */
-export async function selectContract(projectRoot: string, selector?: string): Promise<string> {
+export async function selectContract(
+  projectRoot: string,
+  selector?: string,
+): Promise<string> {
   const contracts = await discoverContracts(projectRoot);
   if (contracts.length === 0) {
-    throw new Error(`No Solidity contracts found under ${path.join(projectRoot, "src")}`);
+    throw new Error(
+      `No Solidity contracts found under ${path.join(projectRoot, "src")}`,
+    );
   }
 
   if (!selector) {
@@ -68,7 +85,10 @@ export async function selectContract(projectRoot: string, selector?: string): Pr
   const normalizedSelector = selector.toLowerCase();
   const matches = contracts.filter((contractPath) => {
     const basename = path.basename(contractPath, ".sol").toLowerCase();
-    return contractPath.toLowerCase().includes(normalizedSelector) || basename === normalizedSelector;
+    return (
+      contractPath.toLowerCase().includes(normalizedSelector) ||
+      basename === normalizedSelector
+    );
   });
 
   if (matches.length === 1) {
@@ -128,20 +148,36 @@ function extractInheritedSignals(source: string): string[] {
     signals.add("AccessControl");
   }
   // Flash loan interface signals
-  if (source.includes("IERC3156") || source.includes("IFlashLoanReceiver") || source.includes("IFlashLoanSimpleReceiver")) {
+  if (
+    source.includes("IERC3156") ||
+    source.includes("IFlashLoanReceiver") ||
+    source.includes("IFlashLoanSimpleReceiver")
+  ) {
     signals.add("IERC3156");
   }
-  if (source.includes("Aave") || source.includes("IPool") || source.includes("IPoolAddressesProvider")) {
+  if (
+    source.includes("Aave") ||
+    source.includes("IPool") ||
+    source.includes("IPoolAddressesProvider")
+  ) {
     signals.add("Aave");
   }
   if (source.includes("dYdX") || source.includes("ISoloMargin")) {
     signals.add("dYdX");
   }
   // AMM / oracle signals
-  if (source.includes("IUniswapV2") || source.includes("IUniswapV3") || source.includes("ICurvePool")) {
+  if (
+    source.includes("IUniswapV2") ||
+    source.includes("IUniswapV3") ||
+    source.includes("ICurvePool")
+  ) {
     signals.add("AMM");
   }
-  if (source.includes("AggregatorV3Interface") || source.includes("latestRoundData") || source.includes("Chainlink")) {
+  if (
+    source.includes("AggregatorV3Interface") ||
+    source.includes("latestRoundData") ||
+    source.includes("Chainlink")
+  ) {
     signals.add("Chainlink");
   }
   return [...signals];
@@ -182,7 +218,11 @@ function extractRiskSignals(source: string): string[] {
     signals.add("flash-loan-callback");
   }
   // Spot price read signals
-  if (source.match(/getReserves\s*\(/) || source.match(/getPrice\s*\(/) || source.match(/slot0\s*\(/)) {
+  if (
+    source.match(/getReserves\s*\(/) ||
+    source.match(/getPrice\s*\(/) ||
+    source.match(/slot0\s*\(/)
+  ) {
     signals.add("spot-price-read");
   }
   if (source.match(/latestAnswer\s*\(/) && !source.match(/updatedAt\s*[><!]/)) {
@@ -200,10 +240,18 @@ function extractRiskSignals(source: string): string[] {
  * @param riskSignals - Detected risk signals.
  * @returns Array of recommended attack type identifiers.
  */
-function recommendAgents(source: string, functions: string[], inheritedSignals: string[], riskSignals: string[]): AttackType[] {
+function recommendAgents(
+  _source: string,
+  functions: string[],
+  inheritedSignals: string[],
+  riskSignals: string[],
+): AttackType[] {
   const agents = new Set<AttackType>();
 
-  if (riskSignals.includes("low-level-call") || functions.some((name) => ["withdraw", "claim", "execute"].includes(name))) {
+  if (
+    riskSignals.includes("low-level-call") ||
+    functions.some((name) => ["withdraw", "claim", "execute"].includes(name))
+  ) {
     agents.add("reentrancy");
   }
 
@@ -211,12 +259,17 @@ function recommendAgents(source: string, functions: string[], inheritedSignals: 
     inheritedSignals.includes("Ownable") ||
     inheritedSignals.includes("AccessControl") ||
     riskSignals.includes("owner-state") ||
-    functions.some((name) => ["mint", "burn", "pause", "upgrade"].includes(name))
+    functions.some((name) =>
+      ["mint", "burn", "pause", "upgrade"].includes(name),
+    )
   ) {
     agents.add("access-control");
   }
 
-  if (riskSignals.includes("arithmetic-mutation") || riskSignals.includes("unchecked-block")) {
+  if (
+    riskSignals.includes("arithmetic-mutation") ||
+    riskSignals.includes("unchecked-block")
+  ) {
     agents.add("arithmetic");
   }
 
@@ -225,7 +278,14 @@ function recommendAgents(source: string, functions: string[], inheritedSignals: 
     inheritedSignals.includes("IERC3156") ||
     inheritedSignals.includes("Aave") ||
     inheritedSignals.includes("dYdX") ||
-    functions.some((name) => ["onFlashLoan", "executeOperation", "callFunction", "receiveFlashLoan"].includes(name))
+    functions.some((name) =>
+      [
+        "onFlashLoan",
+        "executeOperation",
+        "callFunction",
+        "receiveFlashLoan",
+      ].includes(name),
+    )
   ) {
     agents.add("flash-loan");
   }
@@ -234,7 +294,9 @@ function recommendAgents(source: string, functions: string[], inheritedSignals: 
     riskSignals.includes("spot-price-read") ||
     riskSignals.includes("stale-oracle-read") ||
     inheritedSignals.includes("AMM") ||
-    functions.some((name) => ["getPrice", "getReserves", "latestAnswer"].includes(name))
+    functions.some((name) =>
+      ["getPrice", "getReserves", "latestAnswer"].includes(name),
+    )
   ) {
     agents.add("price-manipulation");
   }
@@ -274,8 +336,13 @@ function extractImportedPaths(source: string, contractPath: string): string[] {
  * @param input - Pipeline input containing the project root and optional contract selector.
  * @returns Analysis result with contract metadata, functions, risk signals, and recommended agents.
  */
-export async function analyzeContract(input: AttackPipelineInput): Promise<ContractAnalysis> {
-  const contractPath = await selectContract(input.projectRoot, input.contractSelector);
+export async function analyzeContract(
+  input: AttackPipelineInput,
+): Promise<ContractAnalysis> {
+  const contractPath = await selectContract(
+    input.projectRoot,
+    input.contractSelector,
+  );
   const source = await fs.readFile(contractPath, "utf8");
   const functions = extractFunctions(source);
   const inheritedSignals = extractInheritedSignals(source);
@@ -288,9 +355,14 @@ export async function analyzeContract(input: AttackPipelineInput): Promise<Contr
     functions,
     inheritedSignals,
     riskSignals,
-    recommendedAgents: recommendAgents(source, functions, inheritedSignals, riskSignals),
+    recommendedAgents: recommendAgents(
+      source,
+      functions,
+      inheritedSignals,
+      riskSignals,
+    ),
     source,
-    importedPaths
+    importedPaths,
   };
 }
 
@@ -301,7 +373,10 @@ export async function analyzeContract(input: AttackPipelineInput): Promise<Contr
  * @param projectRoot - Absolute path to the Foundry project root.
  * @returns Contract analysis result with functions, signals, and recommended agents.
  */
-async function analyzeContractByPath(contractPath: string, projectRoot: string): Promise<ContractAnalysis> {
+async function analyzeContractByPath(
+  contractPath: string,
+  _projectRoot: string,
+): Promise<ContractAnalysis> {
   const source = await fs.readFile(contractPath, "utf8");
   const functions = extractFunctions(source);
   const inheritedSignals = extractInheritedSignals(source);
@@ -314,9 +389,14 @@ async function analyzeContractByPath(contractPath: string, projectRoot: string):
     functions,
     inheritedSignals,
     riskSignals,
-    recommendedAgents: recommendAgents(source, functions, inheritedSignals, riskSignals),
+    recommendedAgents: recommendAgents(
+      source,
+      functions,
+      inheritedSignals,
+      riskSignals,
+    ),
     source,
-    importedPaths
+    importedPaths,
   };
 }
 
@@ -326,7 +406,9 @@ async function analyzeContractByPath(contractPath: string, projectRoot: string):
  * @param analyses - Array of contract analysis results to derive edges from.
  * @returns Dependency graph with nodes, import edges, and cross-contract call surface entries.
  */
-export function buildDependencyGraph(analyses: ContractAnalysis[]): ContractDependencyGraph {
+export function buildDependencyGraph(
+  analyses: ContractAnalysis[],
+): ContractDependencyGraph {
   const nodes = analyses.map((a) => a.contractPath);
   const pathToAnalysis = new Map(analyses.map((a) => [a.contractPath, a]));
   const edges: ContractDependencyEdge[] = [];
@@ -338,7 +420,7 @@ export function buildDependencyGraph(analyses: ContractAnalysis[]): ContractDepe
         edges.push({
           importingContract: analysis.contractPath,
           importedPath,
-          importedContractNames: [importedAnalysis.contractName]
+          importedContractNames: [importedAnalysis.contractName],
         });
       }
     }
@@ -346,7 +428,8 @@ export function buildDependencyGraph(analyses: ContractAnalysis[]): ContractDepe
 
   // Build call surface: detect `varName.functionName(` patterns and resolve callee by state var type
   const callSurface: ContractDependencyGraph["callSurface"] = [];
-  const stateVarTypeRegex = /(\w+)\s+(?:public\s+|private\s+|internal\s+)?(\w+)\s*;/g;
+  const stateVarTypeRegex =
+    /(\w+)\s+(?:public\s+|private\s+|internal\s+)?(\w+)\s*;/g;
 
   for (const analysis of analyses) {
     const varTypeMap = new Map<string, string>();
@@ -362,12 +445,17 @@ export function buildDependencyGraph(analyses: ContractAnalysis[]): ContractDepe
       const [, varName, fnName] = m;
       const typeName = varTypeMap.get(varName);
       if (typeName) {
-        const calleeAnalysis = analyses.find((a) => a.contractName === typeName);
-        if (calleeAnalysis && calleeAnalysis.contractPath !== analysis.contractPath) {
+        const calleeAnalysis = analyses.find(
+          (a) => a.contractName === typeName,
+        );
+        if (
+          calleeAnalysis &&
+          calleeAnalysis.contractPath !== analysis.contractPath
+        ) {
           callSurface.push({
             caller: analysis.contractPath,
             callee: calleeAnalysis.contractPath,
-            functionName: fnName
+            functionName: fnName,
           });
         }
       }
@@ -383,9 +471,15 @@ export function buildDependencyGraph(analyses: ContractAnalysis[]): ContractDepe
  * @param projectRoot - Absolute path to the Foundry project root.
  * @returns Object containing the per-contract analyses and the assembled dependency graph.
  */
-export async function analyzeAllContracts(projectRoot: string): Promise<{ analyses: ContractAnalysis[]; graph: ContractDependencyGraph }> {
+export async function analyzeAllContracts(
+  projectRoot: string,
+): Promise<{ analyses: ContractAnalysis[]; graph: ContractDependencyGraph }> {
   const paths = await discoverContracts(projectRoot);
-  const analyses = await Promise.all(paths.map((contractPath) => analyzeContractByPath(contractPath, projectRoot)));
+  const analyses = await Promise.all(
+    paths.map((contractPath) =>
+      analyzeContractByPath(contractPath, projectRoot),
+    ),
+  );
   const graph = buildDependencyGraph(analyses);
   return { analyses, graph };
 }

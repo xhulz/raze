@@ -1,5 +1,5 @@
-import path from "node:path";
 import { promises as fs } from "node:fs";
+import path from "node:path";
 import { sanitizeIdentifier } from "./solidity";
 import type { GeneratedTest, ValidatedAttackPlan } from "./types";
 
@@ -10,7 +10,10 @@ import type { GeneratedTest, ValidatedAttackPlan } from "./types";
  * @param value - The raw value to convert.
  * @returns Solidity literal string representation.
  */
-function solidityLiteral(type: string | undefined, value: string | number | boolean): string {
+function solidityLiteral(
+  type: string | undefined,
+  value: string | number | boolean,
+): string {
   if (!type) {
     return String(value);
   }
@@ -34,7 +37,12 @@ function solidityLiteral(type: string | undefined, value: string | number | bool
  */
 function buildFunctionCallArguments(plan: ValidatedAttackPlan): string {
   const signatureArgTypes = plan.normalizedSampleArguments.map((_, index) => {
-    if (plan.targetStateVariableKeyType && index === 0 && plan.attackType === "access-control" && plan.targetStateVariableType?.startsWith("mapping")) {
+    if (
+      plan.targetStateVariableKeyType &&
+      index === 0 &&
+      plan.attackType === "access-control" &&
+      plan.targetStateVariableType?.startsWith("mapping")
+    ) {
       return plan.targetStateVariableKeyType;
     }
     return undefined;
@@ -51,7 +59,9 @@ function buildFunctionCallArguments(plan: ValidatedAttackPlan): string {
  * @param plan - Validated attack plan with optional target state variable metadata.
  * @returns Solidity expression string, or null if no observable variable is available.
  */
-function buildObservedValueExpression(plan: ValidatedAttackPlan): string | null {
+function buildObservedValueExpression(
+  plan: ValidatedAttackPlan,
+): string | null {
   if (!plan.targetStateVariable) {
     return null;
   }
@@ -74,7 +84,9 @@ function buildAccessControlTest(plan: ValidatedAttackPlan): string {
   const args = buildFunctionCallArguments(plan);
 
   if (!observedExpr) {
-    throw new Error(`Could not materialize access-control proof scaffold for ${plan.contractName} without an observable state variable`);
+    throw new Error(
+      `Could not materialize access-control proof scaffold for ${plan.contractName} without an observable state variable`,
+    );
   }
 
   return `    function test_${sanitizeIdentifier(plan.attackType)}_proof_scaffold() public {
@@ -100,7 +112,9 @@ function buildArithmeticTest(plan: ValidatedAttackPlan): string {
   const args = buildFunctionCallArguments(plan);
 
   if (!observedExpr) {
-    throw new Error(`Could not materialize arithmetic proof scaffold for ${plan.contractName} without an observable state variable`);
+    throw new Error(
+      `Could not materialize arithmetic proof scaffold for ${plan.contractName} without an observable state variable`,
+    );
   }
 
   return `    function test_${sanitizeIdentifier(plan.attackType)}_proof_scaffold() public {
@@ -139,7 +153,7 @@ function buildAccessControlRegressionTest(plan: ValidatedAttackPlan): string {
  * @returns Solidity regression test contract source string.
  */
 function buildReentrancyRegressionTest(plan: ValidatedAttackPlan): string {
-  const functionName = plan.resolvedFunctions[0];
+  const _functionName = plan.resolvedFunctions[0];
   return `
 contract ${plan.contractName}RegressionTest {
     Vm private constant vm = Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
@@ -217,8 +231,12 @@ contract ${plan.contractName}${sanitizeIdentifier(plan.attackType)}Test {
 function buildFlashLoanLenderTest(plan: ValidatedAttackPlan): string {
   const lendFn = plan.resolvedFunctions[0] ?? "flashLoan";
   const observedExpr = buildObservedValueExpression(plan);
-  const beforeLine = observedExpr ? `uint256 beforeValue = uint256(${observedExpr});` : "uint256 beforeValue = 0;";
-  const stateCapture = observedExpr ? `observedStateValue = uint256(${observedExpr});` : "observedStateValue = 1;";
+  const beforeLine = observedExpr
+    ? `uint256 beforeValue = uint256(${observedExpr});`
+    : "uint256 beforeValue = 0;";
+  const stateCapture = observedExpr
+    ? `observedStateValue = uint256(${observedExpr});`
+    : "observedStateValue = 1;";
   const assertLine = observedExpr
     ? `require(attacker.observedStateValue() > beforeValue, "flash loan did not skew observable state");`
     : `require(attacker.observedStateValue() > 0, "flash loan callback was not reached");`;
@@ -271,8 +289,12 @@ contract ${plan.contractName}${sanitizeIdentifier(plan.attackType)}Test {
 function buildFlashLoanReceiverTest(plan: ValidatedAttackPlan): string {
   const callbackFn = plan.resolvedFunctions[0] ?? "onFlashLoan";
   const observedExpr = buildObservedValueExpression(plan);
-  const observeBefore = observedExpr ? `uint256 beforeValue = uint256(${observedExpr});` : "";
-  const observeAfter = observedExpr ? `uint256 afterValue = uint256(${observedExpr});` : "";
+  const observeBefore = observedExpr
+    ? `uint256 beforeValue = uint256(${observedExpr});`
+    : "";
+  const observeAfter = observedExpr
+    ? `uint256 afterValue = uint256(${observedExpr});`
+    : "";
   const assertion = observedExpr
     ? `require(afterValue != beforeValue, "flash loan did not skew observable state");`
     : `require(address(attacker).balance > 0, "flash loan attacker did not receive funds");`;
@@ -352,8 +374,12 @@ function buildFlashLoanTest(plan: ValidatedAttackPlan): string {
 function buildPriceManipulationTest(plan: ValidatedAttackPlan): string {
   const functionName = plan.resolvedFunctions[0] ?? "getPrice";
   const observedExpr = buildObservedValueExpression(plan);
-  const observeBefore = observedExpr ? `uint256 fairPrice = uint256(${observedExpr});` : "uint256 fairPrice = 1e18;";
-  const observeAfter = observedExpr ? `uint256 skewedPrice = uint256(${observedExpr});` : "uint256 skewedPrice = 0;";
+  const observeBefore = observedExpr
+    ? `uint256 fairPrice = uint256(${observedExpr});`
+    : "uint256 fairPrice = 1e18;";
+  const observeAfter = observedExpr
+    ? `uint256 skewedPrice = uint256(${observedExpr});`
+    : "uint256 skewedPrice = 0;";
 
   return `contract MockAMMPair {
     uint112 private reserve0 = 1000 ether;
@@ -393,9 +419,16 @@ contract ${plan.contractName}${sanitizeIdentifier(plan.attackType)}Test {
  * @param plan - Validated attack plan determining which builder to invoke.
  * @returns Complete Solidity source string ready to be written to disk.
  */
-function buildTestSource(testFilePath: string, plan: ValidatedAttackPlan): string {
-  const relativeImport = path.relative(path.dirname(testFilePath), plan.contractPath).replace(/\\/g, "/");
-  const contractImport = relativeImport.startsWith(".") ? relativeImport : `./${relativeImport}`;
+function buildTestSource(
+  testFilePath: string,
+  plan: ValidatedAttackPlan,
+): string {
+  const relativeImport = path
+    .relative(path.dirname(testFilePath), plan.contractPath)
+    .replace(/\\/g, "/");
+  const contractImport = relativeImport.startsWith(".")
+    ? relativeImport
+    : `./${relativeImport}`;
   const testContractName = `${plan.contractName}${sanitizeIdentifier(plan.attackType)}Test`;
 
   const header = `// SPDX-License-Identifier: MIT
@@ -457,7 +490,10 @@ ${buildArithmeticTest(plan)}}
  * @param validatedPlans - Array of validated attack plans to generate test scaffolds for.
  * @returns Array of generated test metadata including file paths and source content.
  */
-export async function generateProofScaffolds(projectRoot: string, validatedPlans: ValidatedAttackPlan[]): Promise<GeneratedTest[]> {
+export async function generateProofScaffolds(
+  projectRoot: string,
+  validatedPlans: ValidatedAttackPlan[],
+): Promise<GeneratedTest[]> {
   const testDir = path.join(projectRoot, "test", "raze");
   await fs.mkdir(testDir, { recursive: true });
 
@@ -472,7 +508,7 @@ export async function generateProofScaffolds(projectRoot: string, validatedPlans
       testFilePath,
       source,
       planSource: plan.planSource,
-      proofIntent: plan.proofGoal
+      proofIntent: plan.proofGoal,
     });
   }
 

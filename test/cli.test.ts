@@ -1,11 +1,11 @@
-import test from "node:test";
 import assert from "node:assert/strict";
-import path from "node:path";
-import os from "node:os";
 import { promises as fs } from "node:fs";
-import { runFuzzCommand } from "../src/interfaces/cli/fuzz";
+import os from "node:os";
+import path from "node:path";
+import test from "node:test";
 import { runDeveloperFuzzCommand } from "../src/interfaces/cli/devFuzz";
 import { runDoctorCommand } from "../src/interfaces/cli/doctor";
+import { runFuzzCommand } from "../src/interfaces/cli/fuzz";
 
 const fixturesRoot = path.resolve("test/fixtures");
 
@@ -13,7 +13,9 @@ async function withCapturedStdout(run: () => Promise<void>): Promise<string> {
   const chunks: string[] = [];
   const originalWrite = process.stdout.write.bind(process.stdout);
   process.stdout.write = ((chunk: string | Uint8Array) => {
-    chunks.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf8"));
+    chunks.push(
+      typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf8"),
+    );
     return true;
   }) as typeof process.stdout.write;
 
@@ -28,7 +30,9 @@ async function withCapturedStdout(run: () => Promise<void>): Promise<string> {
 
 test("runDeveloperFuzzCommand prints generated test files and fuzz families", async () => {
   const tmpRoot = await fs.mkdtemp(path.join(os.tmpdir(), "raze-cli-devfuzz-"));
-  await fs.cp(path.join(fixturesRoot, "access-control"), tmpRoot, { recursive: true });
+  await fs.cp(path.join(fixturesRoot, "access-control"), tmpRoot, {
+    recursive: true,
+  });
 
   const output = await withCapturedStdout(async () => {
     await runDeveloperFuzzCommand(tmpRoot, { contract: "Token" });
@@ -39,15 +43,24 @@ test("runDeveloperFuzzCommand prints generated test files and fuzz families", as
   assert.match(output, /Generated test files:/);
   assert.match(output, /test\/raze\/Token\.mint\.fuzz\.t\.sol/);
   assert.match(output, /Fuzz families:/);
-  assert.match(output, /mint: success-path, input-boundary, access-sensitive, state-transition/);
+  assert.match(
+    output,
+    /mint: success-path, input-boundary, access-sensitive, state-transition/,
+  );
 });
 
 test("runFuzzCommand prints contract name, decision, proof scaffolds, forge totals, and report path", async () => {
   const tmpRoot = await fs.mkdtemp(path.join(os.tmpdir(), "raze-cli-fuzz-"));
-  await fs.cp(path.join(fixturesRoot, "access-control"), tmpRoot, { recursive: true });
+  await fs.cp(path.join(fixturesRoot, "access-control"), tmpRoot, {
+    recursive: true,
+  });
 
   const output = await withCapturedStdout(async () => {
-    await runFuzzCommand(tmpRoot, { contract: "Token", run: true, offline: true });
+    await runFuzzCommand(tmpRoot, {
+      contract: "Token",
+      run: true,
+      offline: true,
+    });
   });
 
   assert.match(output, /Token —/);
@@ -58,9 +71,15 @@ test("runFuzzCommand prints contract name, decision, proof scaffolds, forge tota
 
 test("runDoctorCommand prints version, build path, runtime initialization, and contract count", async () => {
   const tmpRoot = await fs.mkdtemp(path.join(os.tmpdir(), "raze-cli-doctor-"));
-  await fs.cp(path.join(fixturesRoot, "access-control"), tmpRoot, { recursive: true });
+  await fs.cp(path.join(fixturesRoot, "access-control"), tmpRoot, {
+    recursive: true,
+  });
   await fs.mkdir(path.join(tmpRoot, ".raze", ".ia"), { recursive: true });
-  await fs.writeFile(path.join(tmpRoot, ".raze", ".ia", "agents.md"), "# test\n", "utf8");
+  await fs.writeFile(
+    path.join(tmpRoot, ".raze", ".ia", "agents.md"),
+    "# test\n",
+    "utf8",
+  );
 
   const output = await withCapturedStdout(async () => {
     await runDoctorCommand(tmpRoot);

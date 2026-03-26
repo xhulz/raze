@@ -1,11 +1,11 @@
-import test from "node:test";
 import assert from "node:assert/strict";
-import path from "node:path";
-import os from "node:os";
 import { promises as fs } from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import test from "node:test";
+import { runAttackSuite } from "../src/core/attackSuite";
 import { generateDeveloperFuzzTests } from "../src/core/developerFuzz";
 import { suggestHardening } from "../src/core/hardening";
-import { runAttackSuite } from "../src/core/attackSuite";
 import { toolDefinitions } from "../src/interfaces/mcp/tools";
 
 const fixturesRoot = path.resolve("test/fixtures");
@@ -19,7 +19,7 @@ async function createSuiteFixture(): Promise<string> {
 src = "src"
 test = "test"
 `,
-    "utf8"
+    "utf8",
   );
   await fs.writeFile(
     path.join(tmpRoot, "src", "Mega.sol"),
@@ -58,7 +58,7 @@ contract Mega {
     }
 }
 `,
-    "utf8"
+    "utf8",
   );
   return tmpRoot;
 }
@@ -66,25 +66,47 @@ contract Mega {
 test("generateDeveloperFuzzTests emits deterministic per-function fuzz tests", async () => {
   const result = await generateDeveloperFuzzTests({
     projectRoot: path.join(fixturesRoot, "access-control"),
-    contractSelector: "Token"
+    contractSelector: "Token",
   });
 
   assert.ok(result.plans.length >= 2);
-  assert.ok(result.plans.some((plan) => plan.family === "success-path" && plan.functionName === "mint"));
-  assert.ok(result.plans.some((plan) => plan.family === "input-boundary" && plan.functionName === "mint"));
-  assert.ok(result.generatedTests.some((generated) => generated.functionName === "mint"));
+  assert.ok(
+    result.plans.some(
+      (plan) => plan.family === "success-path" && plan.functionName === "mint",
+    ),
+  );
+  assert.ok(
+    result.plans.some(
+      (plan) =>
+        plan.family === "input-boundary" && plan.functionName === "mint",
+    ),
+  );
+  assert.ok(
+    result.generatedTests.some(
+      (generated) => generated.functionName === "mint",
+    ),
+  );
   assert.match(result.generatedTests[0]?.source ?? "", /testFuzz_mint_success/);
 });
 
 test("suggestHardening returns security-focused remediations", async () => {
   const result = await suggestHardening({
     projectRoot: path.join(fixturesRoot, "reentrancy"),
-    contractSelector: "Vault"
+    contractSelector: "Vault",
   });
 
   assert.ok(result.suggestions.length > 0);
-  assert.ok(result.suggestions.some((suggestion) => suggestion.title.includes("Finalize internal accounting")));
-  assert.ok(result.suggestions.every((suggestion) => !suggestion.recommendedChange.toLowerCase().includes("gas")));
+  assert.ok(
+    result.suggestions.some((suggestion) =>
+      suggestion.title.includes("Finalize internal accounting"),
+    ),
+  );
+  assert.ok(
+    result.suggestions.every(
+      (suggestion) =>
+        !suggestion.recommendedChange.toLowerCase().includes("gas"),
+    ),
+  );
 });
 
 test("runAttackSuite uses AI-authored plans as the primary suite mode and preserves family summaries as derived metadata", async () => {
@@ -99,36 +121,60 @@ test("runAttackSuite uses AI-authored plans as the primary suite mode and preser
         attackType: "reentrancy",
         contractName: "Mega",
         functionNames: ["withdraw"],
-        attackHypothesis: "withdraw performs an external call before balances are cleared.",
-        proofGoal: "Show a reentrant callback can revisit withdraw and extract excess value.",
-        expectedOutcome: "The attacker ends with more ether than initially deposited.",
+        attackHypothesis:
+          "withdraw performs an external call before balances are cleared.",
+        proofGoal:
+          "Show a reentrant callback can revisit withdraw and extract excess value.",
+        expectedOutcome:
+          "The attacker ends with more ether than initially deposited.",
         callerRole: "attacker-contract",
         assertionKind: "reentrant-state-inconsistency",
-        sampleArguments: []
+        sampleArguments: [],
       },
       {
         attackType: "access-control",
         contractName: "Mega",
         functionNames: ["mint"],
-        attackHypothesis: "mint mutates privileged state without access control.",
-        proofGoal: "Show an arbitrary caller can mutate tracked state through mint.",
-        expectedOutcome: "The observable value changes after an unauthorized mint call.",
+        attackHypothesis:
+          "mint mutates privileged state without access control.",
+        proofGoal:
+          "Show an arbitrary caller can mutate tracked state through mint.",
+        expectedOutcome:
+          "The observable value changes after an unauthorized mint call.",
         callerRole: "attacker",
         assertionKind: "unauthorized-state-change",
-        sampleArguments: [1]
-      }
+        sampleArguments: [1],
+      },
     ],
-    executionContext: "mcp"
+    executionContext: "mcp",
   });
 
   assert.equal(result.suiteMode, "ai-authored");
   assert.equal(result.planResults.length, 2);
   assert.ok(result.planResults.every((plan) => plan.validatedPlan));
-  assert.ok(result.planResults.some((plan) => plan.attackType === "reentrancy" && plan.assessment.confirmationStatus === "confirmed-by-execution"));
-  assert.ok(result.planResults.some((plan) => plan.attackType === "access-control" && plan.assessment.confirmationStatus === "confirmed-by-execution"));
+  assert.ok(
+    result.planResults.some(
+      (plan) =>
+        plan.attackType === "reentrancy" &&
+        plan.assessment.confirmationStatus === "confirmed-by-execution",
+    ),
+  );
+  assert.ok(
+    result.planResults.some(
+      (plan) =>
+        plan.attackType === "access-control" &&
+        plan.assessment.confirmationStatus === "confirmed-by-execution",
+    ),
+  );
   assert.equal(result.familySummary.length, 5);
-  assert.ok(result.familySummary.some((family) => family.attackType === "reentrancy"));
-  assert.ok(result.familySummary.some((family) => family.attackType === "access-control"));
+  assert.ok(
+    result.familySummary.some((family) => family.attackType === "reentrancy"),
+  );
+  assert.ok(
+    result.familySummary.some(
+      (family) => family.attackType === "access-control",
+    ),
+  );
   assert.ok(result.forgeRun?.ok);
   assert.match(result.reportPath, /\.raze\/reports\/attack-suite\.md$/);
 });
@@ -138,38 +184,42 @@ test("runAttackSuite falls back to heuristic sweep when no plans are supplied", 
   const result = await runAttackSuite({
     projectRoot: tmpRoot,
     contractSelector: "Mega",
-    executionContext: "mcp"
+    executionContext: "mcp",
   });
 
   assert.equal(result.suiteMode, "heuristic-fallback");
   assert.ok(result.planResults.length > 0);
-  assert.ok(result.planResults.every((plan) => plan.analysisSource === "heuristic"));
+  assert.ok(
+    result.planResults.every((plan) => plan.analysisSource === "heuristic"),
+  );
 });
 
 test("raze_attack schema rejects calls without attackPlan", async () => {
   await assert.rejects(
-    () => toolDefinitions.raze_attack.execute({
-      projectRoot: path.join(fixturesRoot, "access-control"),
-      contractSelector: "Token"
-    }),
+    () =>
+      toolDefinitions.raze_attack.execute({
+        projectRoot: path.join(fixturesRoot, "access-control"),
+        contractSelector: "Token",
+      }),
     (err: unknown) => {
       assert.ok(err instanceof Error);
       assert.match(err.message, /attackPlan|invalid/i);
       return true;
-    }
+    },
   );
 });
 
 test("raze_run_attack_suite schema rejects calls without attackPlans", async () => {
   await assert.rejects(
-    () => toolDefinitions.raze_run_attack_suite.execute({
-      projectRoot: path.join(fixturesRoot, "access-control"),
-      contractSelector: "Token"
-    }),
+    () =>
+      toolDefinitions.raze_run_attack_suite.execute({
+        projectRoot: path.join(fixturesRoot, "access-control"),
+        contractSelector: "Token",
+      }),
     (err: unknown) => {
       assert.ok(err instanceof Error);
       assert.match(err.message, /attackPlans|invalid/i);
       return true;
-    }
+    },
   );
 });

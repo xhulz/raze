@@ -13,17 +13,19 @@ export async function runDeveloperFuzzCommand(
   options: {
     contract?: string;
     function?: string;
-  }
+  },
 ): Promise<void> {
   const result = await generateDeveloperFuzzTests({
     projectRoot,
     contractSelector: options.contract,
     functionSelector: options.function,
-    executionContext: "cli"
+    executionContext: "cli",
   });
 
   success(`Analyzed ${result.analysis.contractName}`);
-  info(`Selected functions: ${result.generatedTests.map((generated) => generated.functionName).join(", ") || "none"}`);
+  info(
+    `Selected functions: ${result.generatedTests.map((generated) => generated.functionName).join(", ") || "none"}`,
+  );
   info(`Generated developer fuzz tests: ${result.generatedTests.length}`);
 
   if (result.generatedTests.length > 0) {

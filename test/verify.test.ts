@@ -1,7 +1,7 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
-import { interpretVerifyResults } from "../src/core/verifier.js";
-import type { ForgeRunResult } from "../src/core/types.js";
+import { interpretVerifyResults } from "../src/core/verifier";
+import type { ForgeRunResult } from "../src/core/types";
 
 function makeForgeRun(passed: number, failed: number, skipped = 0): ForgeRunResult {
   return {

@@ -1,4 +1,4 @@
-import type { AttackAgent, AttackFinding, ContractAnalysis } from "../core/types.js";
+import type { AttackAgent, AttackFinding, ContractAnalysis } from "../core/types";
 
 const PRIVILEGED_FUNCTIONS = ["mint", "burn", "pause", "upgrade", "setOwner", "setAdmin"];
 

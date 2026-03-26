@@ -1,14 +1,14 @@
 import path from "node:path";
 import { promises as fs } from "node:fs";
-import { analyzeContract } from "./planner.js";
+import { analyzeContract } from "./planner";
 import {
   parsePublicFunctionSignatures,
   parsePublicStateVariables,
   sanitizeIdentifier,
   type FunctionSignature,
   type PublicStateVariable
-} from "./solidity.js";
-import type { AttackPipelineInput, DeveloperFuzzPlan, DeveloperFuzzResult, DeveloperGeneratedTest } from "./types.js";
+} from "./solidity";
+import type { AttackPipelineInput, DeveloperFuzzPlan, DeveloperFuzzResult, DeveloperGeneratedTest } from "./types";
 
 /**
  * Selects the best public state variable to observe for a given function signature.

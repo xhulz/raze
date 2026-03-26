@@ -1,9 +1,9 @@
 import path from "node:path";
 import { promises as fs } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { detectEnvironment } from "../../utils/detect.js";
-import { info, success, warn } from "../../utils/logger.js";
-import { ensureFoundryProject } from "../../core/planner.js";
+import { detectEnvironment } from "../../utils/detect";
+import { info, success, warn } from "../../utils/logger";
+import { ensureFoundryProject } from "../../core/planner";
 
 /**
  * Creates a file at the given path with the specified content, creating parent directories as needed.

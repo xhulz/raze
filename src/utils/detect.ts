@@ -1,8 +1,8 @@
 import os from "node:os";
 import path from "node:path";
 import { promises as fs } from "node:fs";
-import { execFileSafe } from "./exec.js";
-import type { DetectedEnvironment } from "../core/types.js";
+import { execFileSafe } from "./exec";
+import type { DetectedEnvironment } from "../core/types";
 
 /**
  * Returns the file path for the Cursor MCP configuration.

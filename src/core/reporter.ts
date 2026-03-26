@@ -1,8 +1,8 @@
 import path from "node:path";
 import { promises as fs } from "node:fs";
-import type { AttackPipelineResult } from "./types.js";
-import { deriveSeverity, describeVerdictSummary, interpretForgeResult } from "./presentation.js";
-import { suggestionsFromFindings } from "./hardening.js";
+import type { AttackPipelineResult } from "./types";
+import { deriveSeverity, describeVerdictSummary, interpretForgeResult } from "./presentation";
+import { suggestionsFromFindings } from "./hardening";
 
 /**
  * Writes a Markdown security report summarizing findings, verdicts, proof scaffolds, and next steps.

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { toolDefinitions } from "../src/interfaces/mcp/tools.js";
+import { toolDefinitions } from "../src/interfaces/mcp/tools";
 
 test("MCP tool names are valid for VS Code/Codex", () => {
   const toolNames = Object.keys(toolDefinitions);

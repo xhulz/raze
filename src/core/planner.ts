@@ -1,6 +1,6 @@
 import path from "node:path";
 import { promises as fs } from "node:fs";
-import type { AttackPipelineInput, AttackType, ContractAnalysis, ContractDependencyEdge, ContractDependencyGraph } from "./types.js";
+import type { AttackPipelineInput, AttackType, ContractAnalysis, ContractDependencyEdge, ContractDependencyGraph } from "./types";
 
 const CONTRACT_REGEX = /contract\s+([A-Za-z_][A-Za-z0-9_]*)/g;
 const FUNCTION_REGEX = /function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(/g;

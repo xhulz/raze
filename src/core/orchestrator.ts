@@ -1,11 +1,11 @@
-import { analyzeAllContracts, analyzeContract } from "./planner.js";
+import { analyzeAllContracts, analyzeContract } from "./planner";
 import {
   parseFunctionSignatures,
   parsePublicStateVariables,
   parseConstructorArgs,
   type FunctionSignature,
   type PublicStateVariable
-} from "./solidity.js";
+} from "./solidity";
 import type {
   AttackFinding,
   AttackPlanInput,
@@ -15,7 +15,7 @@ import type {
   CrossContractFinding,
   ProjectInspection,
   ValidatedAttackPlan
-} from "./types.js";
+} from "./types";
 
 const SOLIDITY_IDENTIFIER_REGEX = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 

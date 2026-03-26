@@ -1,4 +1,4 @@
-import type { AttackAgent, AttackFinding, ContractAnalysis } from "../core/types.js";
+import type { AttackAgent, AttackFinding, ContractAnalysis } from "../core/types";
 
 /**
  * Detects price manipulation vulnerabilities by identifying unprotected spot price reads from AMMs and oracles.

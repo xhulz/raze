@@ -1,12 +1,12 @@
 import path from "node:path";
 import { promises as fs } from "node:fs";
-import { analyzeContract } from "./planner.js";
-import { runAttackAgents } from "./attacker.js";
-import { buildAttackAssessment } from "./assessment.js";
-import { deriveFallbackPlans, validateAttackPlan } from "./orchestrator.js";
-import { formatExecutionSummaryBlock } from "./presentation.js";
-import { generateProofScaffolds } from "./tester.js";
-import { runForgeTests } from "./runner.js";
+import { analyzeContract } from "./planner";
+import { runAttackAgents } from "./attacker";
+import { buildAttackAssessment } from "./assessment";
+import { deriveFallbackPlans, validateAttackPlan } from "./orchestrator";
+import { formatExecutionSummaryBlock } from "./presentation";
+import { generateProofScaffolds } from "./tester";
+import { runForgeTests } from "./runner";
 import type {
   AttackPipelineInput,
   AttackPlanInput,
@@ -16,7 +16,7 @@ import type {
   AttackType,
   ProofStatus,
   ValidatedAttackPlan
-} from "./types.js";
+} from "./types";
 
 const ALL_ATTACK_TYPES: AttackType[] = ["reentrancy", "access-control", "arithmetic", "flash-loan", "price-manipulation"];
 

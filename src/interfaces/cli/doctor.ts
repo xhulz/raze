@@ -1,10 +1,10 @@
 import path from "node:path";
 import { promises as fs } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { detectEnvironment } from "../../utils/detect.js";
-import { discoverContracts } from "../../core/planner.js";
-import { info } from "../../utils/logger.js";
-import type { DetectedEnvironment } from "../../core/types.js";
+import { detectEnvironment } from "../../utils/detect";
+import { discoverContracts } from "../../core/planner";
+import { info } from "../../utils/logger";
+import type { DetectedEnvironment } from "../../core/types";
 
 /**
  * Formats a label-value pair as a fixed-width row for CLI output.

@@ -1,4 +1,4 @@
-import type { AttackAgent, AttackFinding, ContractAnalysis } from "../core/types.js";
+import type { AttackAgent, AttackFinding, ContractAnalysis } from "../core/types";
 
 /**
  * Detects unchecked arithmetic operations that may lead to overflow or underflow vulnerabilities.

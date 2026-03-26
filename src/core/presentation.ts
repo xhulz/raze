@@ -1,4 +1,4 @@
-import type { AttackAssessment, AttackFinding, Confidence, ForgeRunResult } from "./types.js";
+import type { AttackAssessment, AttackFinding, Confidence, ForgeRunResult } from "./types";
 
 /**
  * Produces a human-readable one-line verdict summary based on the assessment confirmation status and finding count.

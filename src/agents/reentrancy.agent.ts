@@ -1,4 +1,4 @@
-import type { AttackAgent, AttackFinding, ContractAnalysis } from "../core/types.js";
+import type { AttackAgent, AttackFinding, ContractAnalysis } from "../core/types";
 
 /**
  * Detects reentrancy vulnerabilities by matching external call patterns against state mutations without guards.

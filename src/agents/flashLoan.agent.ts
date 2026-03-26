@@ -1,4 +1,4 @@
-import type { AttackAgent, AttackFinding, ContractAnalysis } from "../core/types.js";
+import type { AttackAgent, AttackFinding, ContractAnalysis } from "../core/types";
 
 /**
  * Detects flash loan attack surfaces by identifying loan interfaces, callback functions, and missing balance invariant checks.

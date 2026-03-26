@@ -1,6 +1,6 @@
-import { analyzeContract } from "./planner.js";
-import { runAttackAgents } from "./attacker.js";
-import type { AttackFinding, AttackPipelineInput, HardeningSuggestion, HardeningSuggestionResult } from "./types.js";
+import { analyzeContract } from "./planner";
+import { runAttackAgents } from "./attacker";
+import type { AttackFinding, AttackPipelineInput, HardeningSuggestion, HardeningSuggestionResult } from "./types";
 
 /**
  * Derives hardening suggestions from attack findings, mapping each finding type to a remediation recommendation.

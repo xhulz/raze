@@ -3,8 +3,8 @@
 ## Language & Build
 
 - Strict TypeScript with `"module": "NodeNext"`
-- ESM imports with explicit `.js` extensions — required by tsc (it does not rewrite import paths). This is the correct modern TS+ESM pattern.
-- Build: `tsc -p tsconfig.json` only. No bundler.
+- ESM imports **without** `.js` extensions in source — `tsc-esm-fix` adds `.js` to compiled output automatically.
+- Build: `tsc -p tsconfig.json && tsc-esm-fix --target dist`. Do not add `.js` to imports manually.
 
 ## Code Organization
 

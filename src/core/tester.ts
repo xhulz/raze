@@ -1,7 +1,7 @@
 import path from "node:path";
 import { promises as fs } from "node:fs";
-import { sanitizeIdentifier } from "./solidity.js";
-import type { GeneratedTest, ValidatedAttackPlan } from "./types.js";
+import { sanitizeIdentifier } from "./solidity";
+import type { GeneratedTest, ValidatedAttackPlan } from "./types";
 
 /**
  * Converts a JS value into a Solidity-compatible literal string based on its ABI type.

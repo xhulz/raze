@@ -1,6 +1,6 @@
 import path from "node:path";
-import { execFileSafe } from "../utils/exec.js";
-import type { ForgeRunResult } from "./types.js";
+import { execFileSafe } from "../utils/exec";
+import type { ForgeRunResult } from "./types";
 
 /**
  * Parses the Forge test summary line from stdout into structured pass/fail/skip counts.

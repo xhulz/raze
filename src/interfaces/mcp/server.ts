@@ -1,7 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { ZodError } from "zod";
-import { toolDefinitions } from "./tools.js";
+import { toolDefinitions } from "./tools";
 
 /**
  * Wraps a payload into the MCP text content response format.

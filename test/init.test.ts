@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import os from "node:os";
 import { promises as fs } from "node:fs";
-import { runInitCommand } from "../src/interfaces/cli/init.js";
+import { runInitCommand } from "../src/interfaces/cli/init";
 
 const fixtureRoot = path.resolve("test/fixtures/reentrancy");
 

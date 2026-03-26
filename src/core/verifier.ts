@@ -1,7 +1,7 @@
 import path from "node:path";
 import { promises as fs } from "node:fs";
-import { runForgeTests } from "./runner.js";
-import type { ForgeRunResult, VerifyContractResult, VerifyResult } from "./types.js";
+import { runForgeTests } from "./runner";
+import type { ForgeRunResult, VerifyContractResult, VerifyResult } from "./types";
 
 /**
  * Interprets proof and regression Forge runs to determine whether a fix has been verified.

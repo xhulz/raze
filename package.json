@@ -20,7 +20,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && tsc-esm-fix --target dist",
     "clean": "rm -rf dist",
     "dev": "node --loader ts-node/esm src/interfaces/cli/index.ts",
     "test": "npm run build && node --test dist/test/**/*.test.js"
@@ -46,6 +46,7 @@
   "devDependencies": {
     "@types/node": "^24.3.0",
     "ts-node": "^10.9.2",
+    "tsc-esm-fix": "^3.1.2",
     "typescript": "^5.9.2"
   }
 }

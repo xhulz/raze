@@ -1,7 +1,7 @@
 import path from "node:path";
-import { runAttackPipeline } from "../../core/pipeline.js";
-import { describeDecision } from "../../core/presentation.js";
-import { info, success } from "../../utils/logger.js";
+import { runAttackPipeline } from "../../core/pipeline";
+import { describeDecision } from "../../core/presentation";
+import { info, success } from "../../utils/logger";
 
 /**
  * Executes the CLI fuzz command, running the attack pipeline and printing results.

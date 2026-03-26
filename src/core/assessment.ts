@@ -1,4 +1,4 @@
-import type { AttackAssessment, CrossContractFinding, GeneratedTest, ValidatedAttackPlan, ForgeRunResult, AttackFinding } from "./types.js";
+import type { AttackAssessment, CrossContractFinding, GeneratedTest, ValidatedAttackPlan, ForgeRunResult, AttackFinding } from "./types";
 
 /** Internal input shape for building an attack assessment. */
 interface AssessableResult {

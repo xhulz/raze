@@ -1,6 +1,6 @@
 import path from "node:path";
-import { generateDeveloperFuzzTests } from "../../core/developerFuzz.js";
-import { info, success } from "../../utils/logger.js";
+import { generateDeveloperFuzzTests } from "../../core/developerFuzz";
+import { info, success } from "../../utils/logger";
 
 /**
  * Executes the CLI dev-fuzz command, generating developer fuzz tests and printing results.

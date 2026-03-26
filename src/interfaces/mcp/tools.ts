@@ -1,14 +1,14 @@
 import { z } from "zod";
-import { analyzeContract } from "../../core/planner.js";
-import { runAttackPipeline } from "../../core/pipeline.js";
-import { generateDeveloperFuzzTests } from "../../core/developerFuzz.js";
-import { suggestHardening } from "../../core/hardening.js";
-import { runAttackSuite } from "../../core/attackSuite.js";
-import { generateProofScaffolds } from "../../core/tester.js";
-import { runAttackAgents } from "../../core/attacker.js";
-import { inspectProject, validateAttackPlan } from "../../core/orchestrator.js";
-import { writeReport } from "../../core/reporter.js";
-import { verifyFixes } from "../../core/verifier.js";
+import { analyzeContract } from "../../core/planner";
+import { runAttackPipeline } from "../../core/pipeline";
+import { generateDeveloperFuzzTests } from "../../core/developerFuzz";
+import { suggestHardening } from "../../core/hardening";
+import { runAttackSuite } from "../../core/attackSuite";
+import { generateProofScaffolds } from "../../core/tester";
+import { runAttackAgents } from "../../core/attacker";
+import { inspectProject, validateAttackPlan } from "../../core/orchestrator";
+import { writeReport } from "../../core/reporter";
+import { verifyFixes } from "../../core/verifier";
 import {
   projectSchema,
   validateAttackPlanSchema,
@@ -17,7 +17,7 @@ import {
   developerFuzzSchema,
   reportWriteSchema,
   verifySchema
-} from "./schemas.js";
+} from "./schemas";
 
 /** Registry of all Raze MCP tool definitions with schemas and execute handlers. */
 export const toolDefinitions = {

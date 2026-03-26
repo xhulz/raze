@@ -3,9 +3,9 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import os from "node:os";
 import { promises as fs } from "node:fs";
-import { runFuzzCommand } from "../src/interfaces/cli/fuzz.js";
-import { runDeveloperFuzzCommand } from "../src/interfaces/cli/devFuzz.js";
-import { runDoctorCommand } from "../src/interfaces/cli/doctor.js";
+import { runFuzzCommand } from "../src/interfaces/cli/fuzz";
+import { runDeveloperFuzzCommand } from "../src/interfaces/cli/devFuzz";
+import { runDoctorCommand } from "../src/interfaces/cli/doctor";
 
 const fixturesRoot = path.resolve("test/fixtures");
 

@@ -1,9 +1,15 @@
 import path from "node:path";
 import { promises as fs } from "node:fs";
-import type { AttackPipelineResult } from "./types.js";
-import { deriveSeverity, describeVerdictSummary, interpretForgeResult } from "./presentation.js";
-import { suggestionsFromFindings } from "./hardening.js";
+import type { AttackPipelineResult } from "./types";
+import { deriveSeverity, describeVerdictSummary, interpretForgeResult } from "./presentation";
+import { suggestionsFromFindings } from "./hardening";
 
+/**
+ * Writes a Markdown security report summarizing findings, verdicts, proof scaffolds, and next steps.
+ *
+ * @param result - Pipeline result data excluding the report path (which this function generates).
+ * @returns Absolute path to the written report file.
+ */
 export async function writeReport(result: Omit<AttackPipelineResult, "reportPath">): Promise<string> {
   const reportsDir = path.join(result.projectRoot, ".raze", "reports");
   await fs.mkdir(reportsDir, { recursive: true });
@@ -131,6 +137,14 @@ _Analysis source: ${result.analysisSource} · ${result.generatedTests.length} pr
   return reportPath;
 }
 
+/**
+ * Generates the "next step" instruction text based on the current confirmation status.
+ *
+ * @param confirmationStatus - The confirmation status from the attack assessment.
+ * @param scaffoldPath - Relative path to the first scaffold test file, or null.
+ * @param forgeCommand - The Forge command string from a previous run, if available.
+ * @returns Markdown-formatted next step instruction string.
+ */
 function buildNextStep(
   confirmationStatus: string,
   scaffoldPath: string | null,

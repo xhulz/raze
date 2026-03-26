@@ -1,7 +1,13 @@
-import { analyzeContract } from "./planner.js";
-import { runAttackAgents } from "./attacker.js";
-import type { AttackFinding, AttackPipelineInput, HardeningSuggestion, HardeningSuggestionResult } from "./types.js";
+import { analyzeContract } from "./planner";
+import { runAttackAgents } from "./attacker";
+import type { AttackFinding, AttackPipelineInput, HardeningSuggestion, HardeningSuggestionResult } from "./types";
 
+/**
+ * Derives hardening suggestions from attack findings, mapping each finding type to a remediation recommendation.
+ *
+ * @param findings - Array of attack findings from heuristic agents.
+ * @returns Array of hardening suggestions with titles, recommended changes, and follow-up test guidance.
+ */
 export function suggestionsFromFindings(findings: AttackFinding[]): HardeningSuggestion[] {
   const suggestions = new Map<string, HardeningSuggestion>();
 
@@ -70,6 +76,12 @@ export function suggestionsFromFindings(findings: AttackFinding[]): HardeningSug
   return [...suggestions.values()];
 }
 
+/**
+ * Analyzes a contract and produces hardening suggestions based on attack findings and risk signals.
+ *
+ * @param input - Object containing project root, optional contract selector, and optional pre-computed findings.
+ * @returns Result with the analysis, findings, and actionable hardening suggestions.
+ */
 export async function suggestHardening(
   input: Pick<AttackPipelineInput, "projectRoot" | "contractSelector"> & {
     findings?: AttackFinding[];

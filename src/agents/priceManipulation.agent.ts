@@ -1,8 +1,17 @@
-import type { AttackAgent, AttackFinding, ContractAnalysis } from "../core/types.js";
+import type { AttackAgent, AttackFinding, ContractAnalysis } from "../core/types";
 
+/**
+ * Detects price manipulation vulnerabilities by identifying unprotected spot price reads from AMMs and oracles.
+ */
 export class PriceManipulationAgent implements AttackAgent {
   readonly type = "price-manipulation" as const;
 
+  /**
+   * Checks for AMM spot price reads and oracle queries lacking TWAP or staleness protection.
+   *
+   * @param input - Parsed contract analysis containing source code, function names, and inherited signals.
+   * @returns An array of findings describing potential price manipulation attack vectors.
+   */
   analyze(input: ContractAnalysis): AttackFinding[] {
     const findings: AttackFinding[] = [];
 

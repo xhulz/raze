@@ -3,11 +3,11 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import os from "node:os";
 import { promises as fs } from "node:fs";
-import { analyzeContract, discoverContracts } from "../src/core/planner.js";
-import { runAttackAgents } from "../src/core/attacker.js";
-import { deriveFallbackPlans, validateAttackPlan } from "../src/core/orchestrator.js";
-import { generateProofScaffolds } from "../src/core/tester.js";
-import { runAttackPipeline } from "../src/core/pipeline.js";
+import { analyzeContract, discoverContracts } from "../src/core/planner";
+import { runAttackAgents } from "../src/core/attacker";
+import { deriveFallbackPlans, validateAttackPlan } from "../src/core/orchestrator";
+import { generateProofScaffolds } from "../src/core/tester";
+import { runAttackPipeline } from "../src/core/pipeline";
 
 const fixturesRoot = path.resolve("test/fixtures");
 

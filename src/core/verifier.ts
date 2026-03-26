@@ -1,8 +1,15 @@
 import path from "node:path";
 import { promises as fs } from "node:fs";
-import { runForgeTests } from "./runner.js";
-import type { ForgeRunResult, VerifyContractResult, VerifyResult } from "./types.js";
+import { runForgeTests } from "./runner";
+import type { ForgeRunResult, VerifyContractResult, VerifyResult } from "./types";
 
+/**
+ * Interprets proof and regression Forge runs to determine whether a fix has been verified.
+ *
+ * @param proofRun - Forge run result for the proof scaffold tests (expected to fail after a fix).
+ * @param regressionRun - Forge run result for the regression tests (expected to pass after a fix).
+ * @returns Object with a verdict ("fix-verified", "fix-incomplete", or "error") and a human-readable reason.
+ */
 export function interpretVerifyResults(
   proofRun: ForgeRunResult,
   regressionRun: ForgeRunResult
@@ -37,6 +44,13 @@ export function interpretVerifyResults(
   return { verdict: "fix-incomplete", reason: reasons.join(" ") };
 }
 
+/**
+ * Discovers existing proof scaffold test files grouped by contract name.
+ *
+ * @param projectRoot - Absolute path to the Foundry project root.
+ * @param contractFilter - Optional contract name to filter discovered scaffolds.
+ * @returns Map from contract name to array of scaffold file paths.
+ */
 async function discoverScaffolds(projectRoot: string, contractFilter?: string): Promise<Map<string, string[]>> {
   const testDir = path.join(projectRoot, "test", "raze");
   const exists = await fs.access(testDir).then(() => true).catch(() => false);
@@ -57,6 +71,12 @@ async function discoverScaffolds(projectRoot: string, contractFilter?: string): 
   return scaffolds;
 }
 
+/**
+ * Generates the Markdown content for a verification report.
+ *
+ * @param result - The verification result with per-contract verdicts.
+ * @returns Markdown string for the verification report.
+ */
 function writeVerifyReport(result: VerifyResult): string {
   const overallLabel = result.overallVerdict === "all-fixed" ? "ALL FIXED" : "INCOMPLETE";
 
@@ -100,6 +120,13 @@ _Verified at ${new Date().toISOString()}_
 `;
 }
 
+/**
+ * Verifies applied fixes by running proof scaffolds and regression tests, then writing a verification report.
+ *
+ * @param projectRoot - Absolute path to the Foundry project root.
+ * @param options - Optional filters for contract name and offline mode.
+ * @returns Verification result with per-contract verdicts, overall verdict, and report path.
+ */
 export async function verifyFixes(
   projectRoot: string,
   options: { contract?: string; offline?: boolean } = {}

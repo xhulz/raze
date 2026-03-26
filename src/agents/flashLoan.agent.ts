@@ -1,8 +1,17 @@
-import type { AttackAgent, AttackFinding, ContractAnalysis } from "../core/types.js";
+import type { AttackAgent, AttackFinding, ContractAnalysis } from "../core/types";
 
+/**
+ * Detects flash loan attack surfaces by identifying loan interfaces, callback functions, and missing balance invariant checks.
+ */
 export class FlashLoanAgent implements AttackAgent {
   readonly type = "flash-loan" as const;
 
+  /**
+   * Evaluates flash loan participation signals and flags contracts lacking balance invariant verification around callbacks.
+   *
+   * @param input - Parsed contract analysis containing source code, function names, and inherited signals.
+   * @returns An array of findings describing potential flash loan exploit vectors.
+   */
   analyze(input: ContractAnalysis): AttackFinding[] {
     const findings: AttackFinding[] = [];
 

@@ -1,12 +1,19 @@
+/** Supported vulnerability class identifiers. */
 export type AttackType = "reentrancy" | "access-control" | "arithmetic" | "flash-loan" | "price-manipulation";
 
+/** Finding confidence level. */
 export type Confidence = "low" | "medium" | "high";
 
+/** Assertion kind used to classify proof scaffold goals. */
 export type AssertionKind = "unauthorized-state-change" | "arithmetic-drift" | "reentrant-state-inconsistency" | "flash-loan-extraction" | "price-oracle-drift";
+/** Origin of the contract analysis (heuristic or AI-orchestrated). */
 export type AnalysisSource = "heuristic" | "ai-orchestrated";
+/** Lifecycle status of an attack hypothesis. */
 export type HypothesisStatus = "none" | "ai-proposed" | "validated";
+/** Lifecycle status of a proof scaffold. */
 export type ProofStatus = "no-scaffold" | "scaffold-generated" | "executed";
 
+/** Top-level input for the attack pipeline. */
 export interface AttackPipelineInput {
   projectRoot: string;
   contractSelector?: string;
@@ -16,6 +23,7 @@ export interface AttackPipelineInput {
   executionContext: "cli" | "mcp";
 }
 
+/** Static analysis result for a single Solidity contract. */
 export interface ContractAnalysis {
   contractName: string;
   contractPath: string;
@@ -27,6 +35,7 @@ export interface ContractAnalysis {
   importedPaths?: string[];
 }
 
+/** A single heuristic attack finding produced by an attack agent. */
 export interface AttackFinding {
   type: AttackType;
   confidence: Confidence;
@@ -37,6 +46,7 @@ export interface AttackFinding {
   functions: string[];
 }
 
+/** AI-authored or heuristic-derived attack plan before validation. */
 export interface AttackPlanInput {
   attackType: AttackType;
   contractName?: string;
@@ -50,6 +60,7 @@ export interface AttackPlanInput {
   sampleArguments?: Array<string | number | boolean>;
 }
 
+/** Attack plan validated against real contract symbols and ready for scaffold generation. */
 export interface ValidatedAttackPlan extends AttackPlanInput {
   contractName: string;
   contractPath: string;
@@ -63,6 +74,7 @@ export interface ValidatedAttackPlan extends AttackPlanInput {
   constructorArgs?: string;
 }
 
+/** Metadata for a generated Solidity proof-of-concept test file. */
 export interface GeneratedTest {
   findingType: AttackType;
   testFilePath: string;
@@ -71,6 +83,7 @@ export interface GeneratedTest {
   proofIntent: string;
 }
 
+/** Plan describing a developer-oriented fuzz test for a single function. */
 export interface DeveloperFuzzPlan {
   contractName: string;
   functionName: string;
@@ -78,6 +91,7 @@ export interface DeveloperFuzzPlan {
   description: string;
 }
 
+/** Metadata for a generated developer fuzz test file. */
 export interface DeveloperGeneratedTest {
   contractName: string;
   functionName: string;
@@ -86,6 +100,7 @@ export interface DeveloperGeneratedTest {
   source: string;
 }
 
+/** Aggregate result of the developer fuzz test generation pipeline. */
 export interface DeveloperFuzzResult {
   projectRoot: string;
   analysis: ContractAnalysis;
@@ -94,6 +109,7 @@ export interface DeveloperFuzzResult {
   skippedFunctions: string[];
 }
 
+/** Result of a single Forge test execution. */
 export interface ForgeRunResult {
   command: string;
   ok: boolean;
@@ -107,6 +123,7 @@ export interface ForgeRunResult {
   };
 }
 
+/** Structured assessment produced after analyzing findings, plans, and execution results. */
 export interface AttackAssessment {
   findingStatus: "no-findings" | "heuristic-findings";
   testStatus: "no-tests" | "proof-scaffolds-generated";
@@ -117,6 +134,7 @@ export interface AttackAssessment {
   interpretation: string;
 }
 
+/** Complete result of the attack pipeline including analysis, tests, assessment, and report. */
 export interface AttackPipelineResult {
   projectRoot: string;
   analysis: ContractAnalysis;
@@ -132,6 +150,7 @@ export interface AttackPipelineResult {
   crossContractFindings?: CrossContractFinding[];
 }
 
+/** Verification result for a single contract's proof and regression tests. */
 export interface VerifyContractResult {
   contractName: string;
   scaffoldFiles: string[];
@@ -141,6 +160,7 @@ export interface VerifyContractResult {
   reason: string;
 }
 
+/** Aggregate verification result across all contracts in the project. */
 export interface VerifyResult {
   projectRoot: string;
   contracts: VerifyContractResult[];
@@ -148,6 +168,7 @@ export interface VerifyResult {
   reportPath: string;
 }
 
+/** A single hardening recommendation derived from attack findings. */
 export interface HardeningSuggestion {
   title: string;
   issue: string;
@@ -158,6 +179,7 @@ export interface HardeningSuggestion {
   followUpTest: string;
 }
 
+/** Result of the hardening suggestion pipeline for a contract. */
 export interface HardeningSuggestionResult {
   projectRoot: string;
   analysis: ContractAnalysis;
@@ -165,6 +187,7 @@ export interface HardeningSuggestionResult {
   suggestions: HardeningSuggestion[];
 }
 
+/** Per-attack-type aggregated result within an attack suite. */
 export interface AttackSuiteFamilyResult {
   attackType: AttackType;
   findings: AttackFinding[];
@@ -176,6 +199,7 @@ export interface AttackSuiteFamilyResult {
   assessment: AttackAssessment;
 }
 
+/** Result of a single plan execution within an attack suite. */
 export interface AttackSuitePlanResult {
   attackType: AttackType;
   authoredPlan?: AttackPlanInput;
@@ -188,6 +212,7 @@ export interface AttackSuitePlanResult {
   assessment: AttackAssessment;
 }
 
+/** Complete result of a multi-plan attack suite execution. */
 export interface AttackSuiteResult {
   projectRoot: string;
   analysis: ContractAnalysis;
@@ -198,17 +223,20 @@ export interface AttackSuiteResult {
   reportPath: string;
 }
 
+/** Interface for a deterministic attack agent that analyzes a contract for a specific vulnerability class. */
 export interface AttackAgent {
   type: AttackType;
   analyze(input: ContractAnalysis): AttackFinding[];
 }
 
+/** A directed edge in the contract dependency graph representing an import relationship. */
 export interface ContractDependencyEdge {
   importingContract: string;
   importedPath: string;
   importedContractNames: string[];
 }
 
+/** Dependency graph capturing import relationships and cross-contract call surface. */
 export interface ContractDependencyGraph {
   nodes: string[];
   edges: ContractDependencyEdge[];
@@ -219,6 +247,7 @@ export interface ContractDependencyGraph {
   }>;
 }
 
+/** A cross-contract risk finding derived from the dependency graph call surface. */
 export interface CrossContractFinding {
   type: AttackType;
   confidence: Confidence;
@@ -229,6 +258,7 @@ export interface CrossContractFinding {
   attackVector: string;
 }
 
+/** Full project inspection result with per-contract metadata and cross-contract analysis. */
 export interface ProjectInspection {
   projectRoot: string;
   contracts: Array<{
@@ -244,6 +274,7 @@ export interface ProjectInspection {
   crossContractFindings: CrossContractFinding[];
 }
 
+/** Detected development environment including toolchain versions and MCP targets. */
 export interface DetectedEnvironment {
   node: {
     ok: boolean;

@@ -1,8 +1,17 @@
-import type { AttackAgent, AttackFinding, ContractAnalysis } from "../core/types.js";
+import type { AttackAgent, AttackFinding, ContractAnalysis } from "../core/types";
 
+/**
+ * Detects reentrancy vulnerabilities by matching external call patterns against state mutations without guards.
+ */
 export class ReentrancyAgent implements AttackAgent {
   readonly type = "reentrancy" as const;
 
+  /**
+   * Scans the contract source for external value transfers that precede balance mutations without reentrancy protection.
+   *
+   * @param input - Parsed contract analysis containing source code, function names, and inherited signals.
+   * @returns An array of findings describing potential reentrancy attack vectors.
+   */
   analyze(input: ContractAnalysis): AttackFinding[] {
     const findings: AttackFinding[] = [];
     const externalCall = input.source.match(/call\s*\{[^}]*value\s*:/) || input.source.match(/\.call\s*\(/);

@@ -1,10 +1,19 @@
-import type { AttackAgent, AttackFinding, ContractAnalysis } from "../core/types.js";
+import type { AttackAgent, AttackFinding, ContractAnalysis } from "../core/types";
 
 const PRIVILEGED_FUNCTIONS = ["mint", "burn", "pause", "upgrade", "setOwner", "setAdmin"];
 
+/**
+ * Detects missing or weak access control on privileged state-changing functions.
+ */
 export class AccessControlAgent implements AttackAgent {
   readonly type = "access-control" as const;
 
+  /**
+   * Checks for privileged functions lacking explicit guards and for unsafe tx.origin authorization patterns.
+   *
+   * @param input - Parsed contract analysis containing source code, function names, and inherited signals.
+   * @returns An array of findings describing access control weaknesses.
+   */
   analyze(input: ContractAnalysis): AttackFinding[] {
     const findings: AttackFinding[] = [];
     const privileged = input.functions.filter((name) => PRIVILEGED_FUNCTIONS.includes(name));

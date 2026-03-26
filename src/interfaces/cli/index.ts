@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 import path from "node:path";
 import { Command } from "commander";
-import { loadEnv } from "../../utils/env.js";
-import { runInitCommand } from "./init.js";
-import { runDoctorCommand } from "./doctor.js";
-import { runFuzzCommand } from "./fuzz.js";
-import { runDeveloperFuzzCommand } from "./devFuzz.js";
-import { runVerifyCommand } from "./verify.js";
-import { failure } from "../../utils/logger.js";
+import { loadEnv } from "../../utils/env";
+import { runInitCommand } from "./init";
+import { runDoctorCommand } from "./doctor";
+import { runFuzzCommand } from "./fuzz";
+import { runDeveloperFuzzCommand } from "./devFuzz";
+import { runVerifyCommand } from "./verify";
+import { failure } from "../../utils/logger";
 
 loadEnv();
 

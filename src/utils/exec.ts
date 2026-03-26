@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
 
+/** Result of a child process execution with exit code and captured output. */
 export interface ExecResult {
   ok: boolean;
   exitCode: number;
@@ -7,6 +8,14 @@ export interface ExecResult {
   stderr: string;
 }
 
+/**
+ * Executes a command safely, resolving with the result instead of rejecting on non-zero exit.
+ *
+ * @param command - The executable to run.
+ * @param args - Array of command-line arguments.
+ * @param options - Optional execution options including working directory.
+ * @returns Promise resolving to the execution result with ok flag, exit code, and output.
+ */
 export function execFileSafe(
   command: string,
   args: string[],

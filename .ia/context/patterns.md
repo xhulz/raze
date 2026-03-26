@@ -18,5 +18,12 @@ Recognized contract patterns that Raze can inspect and target.
 
 ## Where to look in source
 
-- Pattern detection logic: `src/core/` (inspect stage)
-- Pattern-to-template mapping: `templates/`
+- Pattern detection logic: `src/core/planner.ts` (inspect stage)
+- Shared parsing: `src/core/solidity.ts` (signatures, state vars)
+- Scaffold templates: `src/core/tester.ts` (per attack type)
+
+## Code Organization Patterns
+
+- **Helper extraction**: when a regex, parser, or utility is used in >1 module, extract to `solidity.ts`
+- **Schema/tool separation**: MCP schemas in `schemas.ts`, handlers in `tools.ts`
+- **Single-responsibility files**: each core module covers one pipeline stage

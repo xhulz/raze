@@ -1,12 +1,18 @@
-import { analyzeAllContracts, analyzeContract, discoverContracts } from "./planner.js";
-import { runAttackAgents } from "./attacker.js";
-import { buildAttackAssessment } from "./assessment.js";
-import { generateProofScaffolds } from "./tester.js";
-import { runForgeTests } from "./runner.js";
-import { writeReport } from "./reporter.js";
-import { deriveCrossContractFindings, deriveFallbackPlans, validateAttackPlan } from "./orchestrator.js";
-import type { AttackPipelineInput, AttackPipelineResult, CrossContractFinding } from "./types.js";
+import { analyzeAllContracts, analyzeContract, discoverContracts } from "./planner";
+import { runAttackAgents } from "./attacker";
+import { buildAttackAssessment } from "./assessment";
+import { generateProofScaffolds } from "./tester";
+import { runForgeTests } from "./runner";
+import { writeReport } from "./reporter";
+import { deriveCrossContractFindings, deriveFallbackPlans, validateAttackPlan } from "./orchestrator";
+import type { AttackPipelineInput, AttackPipelineResult, CrossContractFinding } from "./types";
 
+/**
+ * Runs the full attack pipeline: analyze, plan, scaffold, optionally execute tests, assess, and report.
+ *
+ * @param input - Pipeline input containing project root, contract selector, attack plan, and execution flags.
+ * @returns Complete pipeline result with analysis, findings, tests, assessment, and report path.
+ */
 export async function runAttackPipeline(input: AttackPipelineInput): Promise<AttackPipelineResult> {
   const analysis = await analyzeContract(input);
   const findings = runAttackAgents(analysis);

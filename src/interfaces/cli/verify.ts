@@ -1,8 +1,14 @@
 import path from "node:path";
-import { verifyFixes } from "../../core/verifier.js";
-import { ensureFoundryProject } from "../../core/planner.js";
-import { success, info, warn } from "../../utils/logger.js";
+import { verifyFixes } from "../../core/verifier";
+import { ensureFoundryProject } from "../../core/planner";
+import { success, info, warn } from "../../utils/logger";
 
+/**
+ * Executes the CLI verify command, running proof and regression tests and printing verdicts.
+ *
+ * @param projectRoot - Absolute path to the Foundry project root.
+ * @param options - CLI options for contract filter and offline mode.
+ */
 export async function runVerifyCommand(
   projectRoot: string,
   options: { contract?: string; offline?: boolean }

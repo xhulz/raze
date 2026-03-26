@@ -1,5 +1,12 @@
-import type { AttackAssessment, AttackFinding, Confidence, GeneratedTest, ForgeRunResult } from "./types.js";
+import type { AttackAssessment, AttackFinding, Confidence, ForgeRunResult } from "./types";
 
+/**
+ * Produces a human-readable one-line verdict summary based on the assessment confirmation status and finding count.
+ *
+ * @param assessment - The computed attack assessment with confirmation status and decision.
+ * @param findings - Array of attack findings used to determine the count in the summary.
+ * @returns A single-sentence verdict summary string.
+ */
 export function describeVerdictSummary(assessment: AttackAssessment, findings: AttackFinding[]): string {
   const count = findings.length;
   const noun = count === 1 ? "vulnerability was" : "vulnerabilities were";
@@ -19,6 +26,12 @@ export function describeVerdictSummary(assessment: AttackAssessment, findings: A
   }
 }
 
+/**
+ * Interprets a Forge test run result into a human-readable explanation of what the outcome means.
+ *
+ * @param forgeRun - The Forge run result, or undefined if Forge was not executed.
+ * @returns Descriptive string explaining the Forge execution outcome.
+ */
 export function interpretForgeResult(forgeRun: ForgeRunResult | undefined): string {
   if (!forgeRun) return "Forge was not run in this analysis.";
   const s = forgeRun.summary;
@@ -35,6 +48,13 @@ export function interpretForgeResult(forgeRun: ForgeRunResult | undefined): stri
   return `Forge returned exit code ${forgeRun.exitCode}. Run manually with \`-vv\` to see details.`;
 }
 
+/**
+ * Derives a severity label (CRITICAL, HIGH, MEDIUM, LOW, INFORMATIONAL) from confidence level and assessment decision.
+ *
+ * @param confidence - The confidence level of the finding (high, medium, or low).
+ * @param decision - The assessment decision (fix-now, investigate, review, or no-action).
+ * @returns Severity label string.
+ */
 export function deriveSeverity(confidence: Confidence, decision: AttackAssessment["decision"]): string {
   if (confidence === "high" && decision === "fix-now") return "CRITICAL";
   if (confidence === "high") return "HIGH";
@@ -43,40 +63,12 @@ export function deriveSeverity(confidence: Confidence, decision: AttackAssessmen
   return "INFORMATIONAL";
 }
 
-export function formatSummaryBlock(
-  findings: AttackFinding[],
-  assessment: AttackAssessment,
-  generatedTests: GeneratedTest[]
-): string {
-  const severity = findings.length > 0
-    ? deriveSeverity(findings[0].confidence, assessment.decision)
-    : "INFORMATIONAL";
-
-  const confirmedFindings = findings.filter((f) =>
-    generatedTests.some((t) => t.findingType === f.type)
-  );
-
-  const confirmedLine = confirmedFindings.length > 0
-    ? confirmedFindings
-        .map((f) => `${f.contract}.${f.functions[0] ?? "?"} (${f.type}, ${deriveSeverity(f.confidence, assessment.decision).toLowerCase()})`)
-        .join(", ")
-    : "none";
-
-  const decisionLabel = assessment.decision === "fix-now"
-    ? `fix-now — ${confirmedFindings.length} issue(s) confirmed`
-    : assessment.decision;
-
-  const next = describeNextStep(assessment.confirmationStatus);
-
-  return `## Summary
-
-- Decision: ${decisionLabel}
-- Severity: ${severity}
-- Confirmed: ${confirmedLine}
-- Next: ${next}
-`;
-}
-
+/**
+ * Describes the recommended next action based on the current confirmation status of the assessment.
+ *
+ * @param confirmationStatus - The confirmation status from the attack assessment.
+ * @returns Human-readable instruction string for the next step.
+ */
 export function describeNextStep(confirmationStatus: AttackAssessment["confirmationStatus"]): string {
   switch (confirmationStatus) {
     case "confirmed-by-execution":
@@ -92,21 +84,12 @@ export function describeNextStep(confirmationStatus: AttackAssessment["confirmat
   }
 }
 
-export function describeConfirmationStatus(status: AttackAssessment["confirmationStatus"]): string {
-  switch (status) {
-    case "confirmed-by-execution":
-      return "confirmed by execution";
-    case "executed-scaffold":
-      return "executed scaffold, not fully confirmed exploit";
-    case "validated-plan":
-      return "validated plan, not yet execution-confirmed";
-    case "suspected-only":
-      return "heuristically suspected only";
-    default:
-      return "no confirmed issue";
-  }
-}
-
+/**
+ * Converts an assessment decision enum value into a short human-readable action phrase.
+ *
+ * @param decision - The assessment decision (fix-now, investigate, review, or no-action).
+ * @returns Short phrase describing what to do (e.g., "fix this issue now").
+ */
 export function describeDecision(decision: AttackAssessment["decision"]): string {
   switch (decision) {
     case "fix-now":
@@ -120,17 +103,14 @@ export function describeDecision(decision: AttackAssessment["decision"]): string
   }
 }
 
-export function formatFinalStatusBlock(assessment: AttackAssessment): string {
-  return `- Decision: ${assessment.decision}
-- Why: ${assessment.decisionReason}
-- Finding status: ${assessment.findingStatus}
-- Test status: ${assessment.testStatus}
-- Execution status: ${assessment.executionStatus}
-- Confirmation status: ${assessment.confirmationStatus}
-- Interpretation: ${assessment.interpretation}
-- Next step: ${describeNextStep(assessment.confirmationStatus)}`;
-}
-
+/**
+ * Formats a Markdown block summarizing the Forge execution result for inclusion in reports.
+ *
+ * @param forgeRun - The Forge run result, or undefined if not executed.
+ * @param generatedTestsInRun - Number of test files generated in the current run.
+ * @param note - Contextual note to append to the execution summary block.
+ * @returns Formatted Markdown string with the execution summary.
+ */
 export function formatExecutionSummaryBlock(
   forgeRun: ForgeRunResult | undefined,
   generatedTestsInRun: number,

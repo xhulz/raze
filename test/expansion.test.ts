@@ -3,10 +3,10 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import os from "node:os";
 import { promises as fs } from "node:fs";
-import { generateDeveloperFuzzTests } from "../src/core/developerFuzz.js";
-import { suggestHardening } from "../src/core/hardening.js";
-import { runAttackSuite } from "../src/core/attackSuite.js";
-import { toolDefinitions } from "../src/interfaces/mcp/tools.js";
+import { generateDeveloperFuzzTests } from "../src/core/developerFuzz";
+import { suggestHardening } from "../src/core/hardening";
+import { runAttackSuite } from "../src/core/attackSuite";
+import { toolDefinitions } from "../src/interfaces/mcp/tools";
 
 const fixturesRoot = path.resolve("test/fixtures");
 
